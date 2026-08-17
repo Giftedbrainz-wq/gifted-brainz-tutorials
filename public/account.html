@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>My Account • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">👤</span> My Account</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <section class="card">
+        <div class="section-head"><h2>Your Details</h2></div>
+        <div class="kv" id="kv"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><h2>Change Your Password</h2></div>
+        <form id="pf" class="formgrid">
+          <div class="field"><label>Current password</label><input id="cur" type="password" autocomplete="current-password" required maxlength="200"></div>
+          <div class="field"><label>New password</label><input id="np" type="password" autocomplete="new-password" minlength="8" required maxlength="200"><small class="muted">At least 8 characters.</small></div>
+          <div class="field"><label>Repeat new password</label><input id="np2" type="password" autocomplete="new-password" minlength="8" required maxlength="200"></div>
+          <button class="btn primary">Save new password</button>
+        </form>
+        <p id="pmsg"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><h2>Install the App</h2></div>
+        <p class="muted">Install Gifted Brainz on your device for quicker access. Updates arrive automatically and
+           silently — the app never downloads any project files onto your device.</p>
+        <button id="install" class="btn gold" type="button" hidden>Install App</button>
+        <p class="muted" id="installNote"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><h2>Delete My Account</h2></div>
+        <p class="muted">This is permanent. Your student profile and all CBT results attached to this account will be removed from the database. To continue, enter your exact username and current password.</p>
+        <form id="deleteForm" class="formgrid">
+          <div class="field"><label>Username</label><input id="delUser" autocomplete="username" required maxlength="80"></div>
+          <div class="field"><label>Password</label><input id="delPass" type="password" autocomplete="current-password" required maxlength="200"></div>
+          <button class="btn danger">Permanently delete account</button>
+        </form>
+        <p id="delMsg"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><h2>Sign Out</h2></div>
+        <p class="muted">Signing out clears your session from this device.</p>
+        <button class="btn light" onclick="GB.logout()">Log out of Gifted Brainz</button>
+      </section>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/account.html"});
+const $=id=>document.getElementById(id);
+
+GB.api("/api/dashboard").then(d=>{
+  const u=d.user;
+  $("who").textContent=u.name;
+  $("kv").innerHTML=[
+    ["Full name",u.name],["Username",u.username],["Email",u.email||"—"],
+    ["Tests taken",d.tests],["Average score",d.avg+"%"],["Overall rank","#"+(d.rank||0)]
+  ].map(([k,v])=>`<div><small>${k}</small><b>${GBUI.esc(v)}</b></div>`).join("");
+}).catch(e=>{$("kv").innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`});
+
+$("pf").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const m=$("pmsg"); m.className=""; m.textContent="";
+  if($("np").value.length<8){m.className="error";m.textContent="The new password must be at least 8 characters.";return}
+  if($("np").value!==$("np2").value){m.className="error";m.textContent="The two new passwords do not match.";return}
+  try{
+    await GB.api("/api/me/password",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({currentPassword:$("cur").value,newPassword:$("np").value})});
+    m.className="ok"; m.textContent="Password updated. Use it the next time you log in.";
+    $("pf").reset();
+  }catch(err){m.className="error";m.textContent=err.message}
+});
+
+$("deleteForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const m=$("delMsg"); m.className=""; m.textContent="";
+  const ok=await GBUI.confirmAction("Delete your account permanently?","This cannot be undone. Your profile and all CBT results connected to this account will be removed from the database.","Yes, delete my account");
+  if(!ok)return;
+  try{
+    await GB.api("/api/me/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("delUser").value,password:$("delPass").value})});
+    try{localStorage.removeItem("gbToken");localStorage.removeItem("gbUser");}catch{}
+    m.className="ok";m.textContent="Account deleted. Redirecting…";
+    setTimeout(()=>location="/",700);
+  }catch(err){m.className="error";m.textContent=err.message}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>Announcements • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">📢</span> Announcements</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <p class="muted">Notices from your tutors. Links are clickable, and pictures or videos play right here.</p>
+      <div id="out"><p class="muted">Loading announcements…</p></div>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/announcements.html"});
+const $=id=>document.getElementById(id);
+
+const when=a=>{const d=new Date(a.createdAt||Date.now());return isNaN(d)?"":d.toLocaleString(undefined,{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})};
+
+function card(a){
+  const att=a.attachments||[];
+  const inline=att.filter(f=>["image","video","audio"].includes(GBUI.kindOf(f)));
+  const other=att.filter(f=>!["image","video","audio"].includes(GBUI.kindOf(f)));
+  return `<article class="anncard">
+    <div class="matmeta"><span class="pill">📢 ${GBUI.esc(a.audience==="admins"?"Staff":"Everyone")}</span><small>${when(a)}</small></div>
+    <h3>${GBUI.esc(a.title||"Announcement")}</h3>
+    <div class="rich">${GBUI.renderBody(a.body,a.bodyFormat)}</div>
+    ${GBUI.media(inline)}${GBUI.files(other)}
+  </article>`;
+}
+
+GB.api("/api/announcements").then(d=>{
+  const list=(Array.isArray(d)?d:(d.items||[])).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  try{localStorage.setItem("gbAnnouncementsCache",JSON.stringify(list))}catch{};
+  $("out").innerHTML=list.length
+    ? GBUI.collapsible("moreAnn", list.map(card))
+    : '<p class="muted">No announcements yet. Check back soon.</p>';
+}).catch(e=>{try{const cached=JSON.parse(localStorage.getItem("gbAnnouncementsCache")||"[]");if(Array.isArray(cached)&&cached.length){$("out").innerHTML=GBUI.collapsible("moreAnn",cached.map(card));return}}catch{};$('out').innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`});
+</script>
+</body>
+</html>

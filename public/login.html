@@ -1,0 +1,105 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d2a5c"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico"><link rel="apple-touch-icon" href="/assets/icon-192.png"><title>Student Login • Gifted Brainz Tutorial</title><link rel="stylesheet" href="/styles.css"></head>
+<body class="login-page" data-install-popup="on"><div class="network-banner" id="networkBanner"></div>
+<div class="formbox login-formbox">
+  <div class="login-topbar"><a class="btn light login-home" href="/">← Home</a><button id="install" class="install-btn login-install-button" type="button" aria-label="Install Gifted Brainz Tutorial"><img src="/assets/icon-192.png" alt="" aria-hidden="true"><span>Install App</span></button></div>
+  <img class="logo-full" src="/assets/logo-full.png" alt="Gifted Brainz Tutorial">
+  <h1>Student Login</h1>
+  <p class="muted">Use your username and password.</p>
+  <form id="f">
+    <div class="field"><label>Username</label><input id="username" type="text" autocomplete="username" required maxlength="80"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required maxlength="200"></div>
+    <button class="btn primary" style="width:100%">Login</button>
+  </form>
+  <p style="text-align:center;margin:12px 0 0"><a href="/help.html#password" style="font-weight:800;color:#0d2a5c">Forgot your password?</a></p>
+  <p class="muted" style="text-align:center;margin:4px 0 0;font-size:.84rem">The Help &amp; Support page shows you how to reach an admin, who will reset it for you.</p>
+  <div id="statusBox" class="notice" hidden></div>
+  <div class="divider">Waiting for approval?</div>
+  <p class="muted" style="margin-top:0">New accounts must be approved by an admin before the first login. Check yours here.</p>
+  <div class="field"><label for="checkUser">Your username</label><input id="checkUser" type="text" maxlength="80" placeholder="Type the username you registered with"></div>
+  <button class="btn light" style="width:100%" type="button" id="checkBtn">Check my registration status</button>
+  <a class="channel-banner channel-login-banner" href="https://whatsapp.com/channel/0029VbC1jX73QxRtsF3Kms3r" target="_blank" rel="noopener noreferrer"><span class="channel-icon">📱</span><span><b>Follow our WhatsApp Channel</b><small>Tap here — announcements &amp; learning updates instantly ✅</small></span><span class="channel-arrow">↗</span></a>
+  <p id="msg"></p>
+  <div class="divider">Admin access</div>
+  <a class="btn gold" style="width:100%;margin-top:10px" href="/admin.html">Log in as Admin</a>
+  <a class="btn light" style="width:100%;margin-top:10px" href="/register.html">Create an account →</a>
+  <p class="muted" style="text-align:center;margin:12px 0 0;font-size:.84rem">Need anything else? <a href="/help.html">Help &amp; Support</a></p>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script>
+const form=document.getElementById("f"), usernameInput=document.getElementById("username"),
+  passwordInput=document.getElementById("password"), msg=document.getElementById("msg"),
+  statusBox=document.getElementById("statusBox");
+
+function show(kind,text){
+  statusBox.hidden=false;
+  statusBox.style.background = kind==="good" ? "#e7f6ee" : kind==="bad" ? "#fdeceb" : "#fff8e6";
+  statusBox.style.color      = kind==="good" ? "#04502f" : kind==="bad" ? "#8a1b13" : "#7a5600";
+  statusBox.innerHTML=text;
+}
+
+// A session that the server would not accept sends the student back here.
+// Saying so plainly stops the return trip from looking like a silent refresh.
+if(new URLSearchParams(location.search).get("session")==="expired")
+  show("warn","<b>Your session ended \u23F3</b><br>Please sign in again to continue.");
+
+// A student who registered earlier is told, the moment they come back, whether
+// an admin has approved the account yet.
+let approvalPoll=null;
+async function pollApproval(){
+  let pending=""; try{pending=localStorage.getItem("gbPendingUser")||""}catch{}
+  if(!pending){if(approvalPoll)clearInterval(approvalPoll);return}
+  usernameInput.value=pending; document.getElementById("checkUser").value=pending;
+  try{
+    const x=await GB.api("/api/registration-status?username="+encodeURIComponent(pending));
+    if(x.approval==="approved"){
+      show("good","<b>Good news ✅</b><br>Your account has been approved by the admin. You can now log in with your username and password.");
+      try{localStorage.removeItem("gbPendingUser")}catch{}
+      if(approvalPoll)clearInterval(approvalPoll);
+    }else if(x.approval==="rejected"){
+      show("bad","<b>Not approved ❌</b><br>"+GB.esc(x.message||"")+" Please visit <a href='/help.html'>Help &amp; Support</a>.");
+      if(approvalPoll)clearInterval(approvalPoll);
+    }else if(x.found){
+      show("warn","<b>Still waiting ⏳</b><br>Your account is with the admins for approval. This page is checking automatically — no need to keep pressing the button.");
+    }
+  }catch{}
+}
+(async()=>{let pending="";try{pending=localStorage.getItem("gbPendingUser")||""}catch{};if(!pending)return;await pollApproval();approvalPoll=setInterval(pollApproval,20000)})();
+
+document.getElementById("checkBtn").onclick=async()=>{
+  const u=document.getElementById("checkUser").value.trim();
+  if(!u){ show("warn","Please type the username you registered with."); return }
+  show("warn","Checking…");
+  try{
+    const x=await GB.api("/api/registration-status?username="+encodeURIComponent(u));
+    if(!x.found) show("bad","<b>Not found</b><br>"+GB.esc(x.message||"We could not find that account."));
+    else if(x.approval==="approved"){ show("good","<b>Approved ✅</b><br>"+GB.esc(x.message||"You can now log in.")); try{ localStorage.removeItem("gbPendingUser") }catch{} }
+    else if(x.approval==="rejected") show("bad","<b>Not approved ❌</b><br>"+GB.esc(x.message||""));
+    else show("warn","<b>Still waiting ⏳</b><br>"+GB.esc(x.message||"Your account is waiting for admin approval."));
+  }catch(e){ show("bad",GB.esc(e.message)) }
+};
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault(); msg.textContent=""; msg.className="";
+  try{
+    const j=await GB.api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:usernameInput.value,password:passwordInput.value})});
+    localStorage.gbToken=j.token; localStorage.gbUser=JSON.stringify(j.user);
+    try{ localStorage.removeItem("gbPendingUser") }catch{}
+    const updateVersion=new URLSearchParams(location.search).get("update");
+    location=updateVersion
+      ? "/update.html?version="+encodeURIComponent(updateVersion)
+      : "/dashboard.html";
+  }catch(err){
+    const t=String(err.message||"");
+    if(/waiting for admin approval/i.test(t)){
+      try{ localStorage.setItem("gbPendingUser",usernameInput.value.trim()) }catch{}
+      show("warn","<b>Still waiting for approval ⏳</b><br>"+GB.esc(t));
+      msg.textContent="";
+    } else if(/unable to approve/i.test(t)){
+      show("bad","<b>Not approved ❌</b><br>"+GB.esc(t)+" <a href='/help.html'>Contact support</a>.");
+      msg.textContent="";
+    } else if(/password/i.test(t)||/incorrect/i.test(t)||/credential/i.test(t)){
+      msg.className="error";
+      msg.innerHTML=GB.esc(t)+' — <a href="/help.html#password">forgot your password?</a>';
+    } else { msg.className="error"; msg.textContent=t }
+  }
+});
+</script></body></html>

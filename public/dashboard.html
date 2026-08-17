@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>Student Dashboard • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">🏠</span> Dashboard</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <section class="hero-banner">
+        <div class="eyebrow">Gifted Brainz Tutorial</div>
+        <h1 id="hello">Welcome back! 👋</h1>
+        <p>This is your dashboard: a clean snapshot of your activity, scores and subject progress.
+           Use the menu on the left when you want to open another area.</p>
+      </section>
+
+      <div class="statgrid" id="statgrid"></div>
+
+      <div class="panelgrid">
+        <div class="card">
+          <div class="section-head"><h2>Your Subject Progress</h2></div>
+          <p class="muted">Your CBT performance by subject. This section is informational only.</p>
+          <div id="subjectProgress" class="subjectgrid"></div>
+        </div>
+        <div class="card">
+          <div class="section-head"><h2>Latest CBT Result</h2></div>
+          <div id="latest"></div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/dashboard.html"});
+const $=id=>document.getElementById(id);
+
+const STATS=[
+  {key:"tests", icon:"📝", label:"Tests Taken", note:"How many CBTs you have completed."},
+  {key:"avg",   icon:"🎯", label:"Average Score", note:"The average of every CBT you submitted."},
+  {key:"best",  icon:"🏅", label:"Best Score", note:"Your highest score in a single CBT."},
+  {key:"rank",  icon:"🏆", label:"Overall Rank", note:"Your position on the overall leaderboard."}
+];
+
+async function load(){
+  try{
+    const d=await GB.api("/api/dashboard");
+    try{localStorage.gbUser=JSON.stringify(d.user)}catch{}
+    const first=(d.user.name||"").split(" ")[0]||d.user.name;
+    $("hello").textContent="Welcome back, "+first+"! 👋";
+    $("who").textContent=d.user.name;
+
+    const values={
+      tests:d.tests,
+      avg:d.avg+"%",
+      best:(d.results.length?Math.max(...d.results.map(r=>r.score)):0)+"%",
+      rank:"#"+(d.rank||0)
+    };
+    $("statgrid").innerHTML=STATS.map(s=>`<div class="statcard plain">
+      <div class="ic">${s.icon}</div><strong>${GBUI.esc(values[s.key])}</strong>
+      <small>${s.label}</small><small class="icon-note">${s.note}</small></div>`).join("");
+
+    $("subjectProgress").innerHTML=GBUI.SUBJECTS.map(s=>{
+      const rr=d.results.filter(r=>r.subject===s);
+      const pct=rr.length?Math.round(rr.reduce((x,r)=>x+r.score,0)/rr.length):0;
+      return `<div class="subject-card static">
+        <b>${GBUI.SUBJECT_ICONS[s]||"📗"} ${GBUI.esc(s)}</b>
+        <div class="progress"><i style="width:${pct}%"></i></div>
+        <small>${pct}% average • ${rr.length} test${rr.length===1?"":"s"}</small></div>`;
+    }).join("");
+
+    const last=d.results[0];
+    if(last){
+      const g=GBUI.GRADE(last.score);
+      $("latest").innerHTML=`<div class="result-card" style="text-align:center">
+          <small>${GBUI.esc(last.testTitle)}</small>
+          ${GBUI.scoreDonut(last.score,150)}
+          <div style="font-weight:900;font-size:1.2rem">${last.correct}/${last.correct+last.wrong+last.unanswered} correct</div>
+          <div class="res-band bg-${g.band}">${g.emoji} ${GBUI.esc(g.word)}</div>
+          <p class="g-${g.band}" style="font-weight:800;margin:10px 0 0">${GBUI.esc(g.remark)} ${g.emoji}</p>
+          <a class="btn light" style="margin-top:12px" href="/cbt.html?review=${encodeURIComponent(last.id)}">See the corrections →</a></div>`;
+    } else $("latest").innerHTML='<p class="muted">You have not completed any CBT yet.</p>';
+  }catch(e){
+    $("statgrid").innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

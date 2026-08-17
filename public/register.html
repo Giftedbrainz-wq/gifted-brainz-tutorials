@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d2a5c"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico"><link rel="apple-touch-icon" href="/assets/icon-192.png"><title>Join Gifted Brainz Tutorial</title><link rel="stylesheet" href="/styles.css"></head>
+<body><div class="network-banner" id="networkBanner"></div>
+<div class="formbox">
+  <div class="backnav"><a class="btn light" href="/">← Back to Home</a></div>
+  <img class="logo-full" src="/assets/logo-full.png" alt="Gifted Brainz Tutorial">
+  <h1>Create Student Account</h1>
+  <p class="muted">Fill in your details below. An admin checks and approves every new account before the first login.</p>
+  <div class="notice">🪪 <b>How approval works:</b> after you submit this form your account goes to the Gifted Brainz admins. As soon as they approve it, you can log in with your username and password — come back to the login page and it will tell you.</div>
+  <form id="f">
+    <div class="field"><label>Full name</label><input id="name" required maxlength="120"></div>
+    <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" required maxlength="160"></div>
+    <div class="field"><label>Username</label><input id="username" type="text" autocomplete="username" required maxlength="80"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" required maxlength="200"><small class="muted">At least 8 characters. Keep it safe — an admin can reset it for you if you forget.</small></div>
+    <button class="btn primary" style="width:100%" id="go">Create Account</button>
+  </form>
+  <div id="done" hidden></div>
+  <a class="channel-banner channel-login-banner" href="https://whatsapp.com/channel/0029VbC1jX73QxRtsF3Kms3r" target="_blank" rel="noopener noreferrer"><span class="channel-icon">📱</span><span><b>Follow our WhatsApp Channel</b><small>Tap here — announcements &amp; learning updates instantly ✅</small></span><span class="channel-arrow">↗</span></a>
+  <p id="msg"></p>
+  <a class="btn light" style="width:100%;margin-top:10px" href="/login.html">← Back to Login</a>
+  <p class="muted" style="text-align:center;margin:12px 0 0;font-size:.84rem">Trouble registering? <a href="/help.html">Help &amp; Support</a></p>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script>
+const form=document.getElementById("f"), nameInput=document.getElementById("name"), emailInput=document.getElementById("email"),
+  usernameInput=document.getElementById("username"), passwordInput=document.getElementById("password"),
+  msg=document.getElementById("msg"), done=document.getElementById("done");
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault(); msg.textContent=""; msg.className="";
+  if(passwordInput.value.length<8){ msg.className="error"; msg.textContent="Password must be at least 8 characters."; return }
+  document.getElementById("go").disabled=true;
+  try{
+    const j=await GB.api("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name:nameInput.value,email:emailInput.value,username:usernameInput.value,password:passwordInput.value})});
+    // No token is issued yet — the account only becomes usable after approval.
+    try{ localStorage.setItem("gbPendingUser",usernameInput.value.trim()) }catch{}
+    form.hidden=true; done.hidden=false;
+    done.innerHTML=`<div class="notice" style="background:#fff8e6;color:#7a5600">
+      <b>⏳ Waiting for admin approval</b>
+      <p style="margin:8px 0 0;line-height:1.6">${GB.esc(j.message||"Your account has been created and is waiting for admin approval.")}</p>
+      <p style="margin:8px 0 0;line-height:1.6">Nothing else is needed from you. Next time you open the website, the login page will tell you the moment an admin has approved your account — then you can log in with <b>${GB.esc(usernameInput.value.trim())}</b> and your password.</p>
+    </div>
+    <a class="btn primary" style="width:100%;margin-top:10px" href="/login.html">Go to the login page</a>
+    <a class="btn light" style="width:100%;margin-top:10px" href="/help.html">Need help? Contact an admin</a>`;
+  }catch(err){ msg.className="error"; msg.textContent=err.message }
+  finally{ document.getElementById("go").disabled=false }
+});
+</script></body></html>

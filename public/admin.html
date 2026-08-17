@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d2a5c">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/assets/favicon.ico">
+<title>Admin Console • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="admin-login-page" data-install-popup="on">
+<div class="network-banner" id="networkBanner"></div>
+
+<!-- ---------------------------- sign in ---------------------------- -->
+<div class="formbox admin-login-box" id="login"><div class="login-topbar"><a class="btn light login-home" href="/login.html">← Student Login</a><button id="install" class="install-btn login-install-button" type="button" aria-label="Install Gifted Brainz Tutorial"><img src="/assets/icon-192.png" alt="" aria-hidden="true"><span>Install App</span></button></div>
+  <img class="logo-full" src="/assets/logo-full.png" alt="Gifted Brainz Tutorial">
+  <h1>Admin Login</h1>
+  <p class="muted">Administrator access only. Sign in with your admin username and password.</p>
+  <form id="lf">
+    <div class="field"><label>Admin username</label><input id="username" type="text" autocomplete="username" required maxlength="80" placeholder="Admin username"></div>
+    <div class="field"><label>Admin password</label><input id="password" type="password" autocomplete="current-password" required maxlength="200"></div>
+    <button class="btn primary" style="width:100%">Log in</button>
+  </form>
+  <p id="lm"></p>
+
+</div>
+
+<!-- ---------------------------- console ---------------------------- -->
+<div id="panel" hidden>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">🛠️</span> <span id="viewTitle">Overview</span></div>
+      <div class="topbar-right"><span class="who">Administrator</span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <div id="msg"></div>
+
+      <!-- Overview -->
+      <section class="view" id="v-overview">
+        <div class="statgrid" id="stats"></div>
+        <div id="storageStatus" class="notice" hidden></div>
+        <div class="card"><div class="section-head"><h2>Leaderboard Controls</h2></div>
+          <p class="muted">Clear the general leaderboard or a single subject without deleting students’ CBT history or dashboard records.</p>
+          <div class="formgrid"><div class="field"><label for="lbSubject">Subject</label><select id="lbSubject"></select></div>
+            <div class="factions" style="align-items:end"><button class="btn danger" type="button" id="clearLbSubject">Clear subject leaderboard</button><button class="btn light" type="button" id="clearLbAll">Clear general leaderboard</button></div></div>
+          <p class="muted" id="lbStatus"></p></div>
+        <div class="card"><div class="section-head"><h2>Recent Results</h2></div><div id="recent"></div></div>
+      </section>
+
+      <!-- Verification of Students Account -->
+      <section class="view" id="v-verify" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Verification of Students Account</h2><button class="btn light" type="button" id="verifyRefresh">↻ Refresh</button></div>
+          <p class="muted">Every new student account waits here until you approve it. Until then the student cannot log in —
+             they simply see a message that their account is awaiting admin approval. Once you approve an account, the
+             student is told on the login page that the admin has approved it and they can log in.</p>
+          <div id="pendingList"></div>
+        </div>
+      </section>
+
+      <!-- Students -->
+      <section class="view" id="v-students" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Students</h2></div>
+          <p class="muted">Tap a student to see their full progress, subject by subject. Use <b>Reset password</b> when a student forgets theirs.</p>
+          <div id="studentsList"></div>
+        </div>
+        <div class="card" id="progressCard" hidden>
+          <div class="section-head"><h2 id="pTitle">Student progress</h2><button class="btn light" type="button" id="pClose">✕ Close</button></div>
+          <div id="progressBody"></div>
+        </div>
+      </section>
+
+      <!-- Materials -->
+      <section class="view" id="v-materials" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Publish Learning Material</h2></div>
+          <form id="noteForm" class="formgrid">
+            <div class="field"><label>Title</label><input id="ntitle" required maxlength="200"></div>
+            <div class="field"><label>Subject session</label><select id="nsubject" required></select></div>
+            <div class="field"><label>Topic (optional)</label><input id="ntopic" maxlength="200"></div>
+            <div class="field full"><label>Note</label><div id="nbodyEditor"></div></div>
+            <div class="field full"><label>Attach files — pictures, videos, audio or documents</label>
+              <input id="nfiles" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip">
+              <small class="muted">Videos are uploaded in small pieces, so even a long lesson video goes through on a slow connection. Keep each file under 2 GB.</small>
+              <div id="nprog" class="upload-status" aria-live="polite"></div>
+              <div class="progress" id="nprogress" hidden><i id="nprogressBar" style="width:0%"></i></div></div>
+            <label class="check"><input id="npub" type="checkbox" checked> Publish immediately</label>
+            <button class="btn primary" id="saveMaterialBtn" type="submit">Save material</button>
+          </form>
+        </div>
+        <div class="card"><div class="section-head"><h2>Published Materials</h2></div><div id="notesList"></div></div>
+      </section>
+
+      <!-- CBTs -->
+      <section class="view" id="v-cbt" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Create CBT</h2></div>
+          <form id="testForm" class="formgrid">
+            <div class="field"><label>Test title</label><input id="ttitle" required maxlength="200"></div>
+            <div class="field"><label>Subject</label><select id="tsubject" required></select></div>
+            <div class="field"><label>Duration</label><input id="tduration" type="number" min="40" max="50" value="40" required readonly>
+              <small class="muted">Fixed by subject: Mathematics = 50 minutes; all other subjects = 40 minutes.</small></div>
+            <div class="field full notice" style="margin:0"><b>UTME CBT rule:</b> every CBT must contain exactly <b>40 questions</b>. The platform provides five CBTs per subject. Physics, Chemistry and Biology must contain <b>8 Roman-numeral questions</b> (20%) using statements I–IV. English and Mathematics do not use this Roman-numeral requirement.</div>
+            <label class="check"><input id="tshuffleQ" type="checkbox" checked> Shuffle question order</label>
+            <label class="check"><input id="tshuffleO" type="checkbox" checked> Shuffle answer options</label>
+            <div class="field full"><label>Questions</label><div id="qs"></div>
+              <button class="btn light" type="button" id="addQ">＋ Add question</button></div>
+            <label class="check"><input id="tpub" type="checkbox" checked> Publish immediately</label>
+            <button class="btn primary">Save CBT</button>
+          </form>
+        </div>
+        <div class="card"><div class="section-head"><h2>Existing CBTs</h2></div><div id="testsList"></div></div>
+      </section>
+
+      <!-- Question Bank -->
+      <section class="view" id="v-bank" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Question Bank</h2></div>
+          <p class="muted">Build the reusable subject question bank manually, or extract numbered A–D questions from a PDF,
+             Word or text document. After every import the console tells you plainly whether the questions were extracted
+             properly, and flags any question whose correct answer could not be read from the document.</p>
+          <form id="bankImportForm" class="qb-controls">
+            <div class="field"><label>Subject</label><select id="bsubject"></select></div>
+            <div class="field"><label>Document (PDF, Word, text)</label><input id="bfile" type="file" accept=".pdf,.doc,.docx,.txt,.html,.htm"></div>
+            <button class="btn primary" type="submit">Extract &amp; add questions</button>
+          </form>
+          <small id="bprog" class="muted"></small>
+          <div id="bextract"></div>
+        </div>
+        <div class="card">
+          <div class="section-head"><h2>Manually add a question</h2></div>
+          <form id="bankManualForm" class="formgrid">
+            <div class="field full notice"><b>English passage-setting guide:</b> first create one clear <b>Passage Group ID</b> (for example <code>ENG-P03</code>), paste the complete passage once in <b>Shared passage</b>, then add each question that belongs to that passage. Use the same Passage Group ID for every related question. Do not paste a different passage into each question unless it is intentionally a new passage.</div>
+            <div class="field"><label>Subject</label><select id="bmSubject"></select></div>
+            <div class="field"><label>Question type</label><select id="bmType"><option value="mcq">Multiple choice</option><option value="passage">Passage question</option></select></div>
+            <div class="field"><label>Passage group ID (same ID keeps passage questions together)</label><input id="bmPassageId" placeholder="e.g. ENG-P03"></div>
+            <div class="field full"><label>Shared passage (optional for passage questions)</label><div id="bmPassage"></div></div>
+            <div class="field full"><label>Question</label><div id="bmQuestion"></div></div>
+            <div class="field full"><label>Question image (optional)</label><input id="bmImage" type="file" accept="image/*"></div>
+            <div class="field"><label>Option A</label><input id="bmA" required></div><div class="field"><label>Option B</label><input id="bmB" required></div><div class="field"><label>Option C</label><input id="bmC" required></div><div class="field"><label>Option D</label><input id="bmD" required></div>
+            <div class="field"><label>Correct option</label><select id="bmAnswer"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+            <label class="check"><input id="bmRoman" type="checkbox"> Roman-numeral format (I–IV) — Physics/Chemistry/Biology only</label>
+            <div class="field"><label>Explanation (optional)</label><input id="bmExplanation"></div>
+            <button class="btn primary">Add to question bank</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="section-head"><h2>Banked Questions</h2>
+            <div class="filters"><select id="bankFilter"></select><select id="bankReviewFilter"><option value="">All questions</option><option value="review">Needs answer review</option><option value="ready">Ready</option></select></div>
+          </div>
+          <p class="muted" id="bankCount"></p>
+          <div id="bankList"></div>
+        </div>
+      </section>
+
+      <!-- Announcements -->
+      <section class="view" id="v-ann" hidden>
+        <div class="card">
+          <div class="section-head"><h2 id="annFormTitle">Post Announcement</h2></div>
+          <form id="annForm" class="formgrid">
+            <input type="hidden" id="aeditId" value="">
+            <div class="field full"><label>Title</label><input id="atitle" required maxlength="200"></div>
+            <div class="field full"><label>Message — use bold, italic, lists, emojis and links</label><div id="abodyEditor"></div></div>
+            <div class="field full"><label>Attach pictures, videos, audio or files</label>
+              <input id="afiles" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip">
+              <small class="muted">Videos upload in small pieces so they work on mobile data. When editing, use Remove beside any old file you no longer want.</small>
+              <div id="aExistingMedia" class="filelist"></div><small class="muted" id="aprog"></small></div>
+            <label class="check"><input id="apub" type="checkbox" checked> Publish immediately</label>
+            <div class="factions">
+              <button class="btn primary" id="annSubmit">Post announcement</button>
+              <button class="btn light" type="button" id="annCancelEdit" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </div>
+        <div class="card"><div class="section-head"><h2>Previous Announcements</h2><button class="btn light" type="button" id="annRefresh">↻ Refresh</button></div>
+          <p class="muted">Everything you have ever posted is listed here. You can edit the wording, publish or unpublish it, or delete it altogether.</p>
+          <div id="annList"></div></div>
+      </section>
+
+      <!-- Feedback & ratings -->
+      <section class="view" id="v-feedback" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Feedback &amp; Ratings</h2><button class="btn light" type="button" id="fbRefresh">↻ Refresh</button></div>
+          <p class="muted">What students think of the tutorial and the app, plus any complaint they have lodged.</p>
+          <div id="fbSummary"></div>
+        </div>
+        <div class="card">
+          <div class="section-head"><h2>Messages from students</h2>
+            <div class="filters"><select id="fbFilter"><option value="">Everything</option><option value="complaint">Complaints only</option><option value="feedback">Feedback only</option><option value="suggestion">Suggestions only</option><option value="open">Not yet handled</option></select></div>
+          </div>
+          <div id="fbList"></div>
+        </div>
+      </section>
+
+      <!-- Admin account -->
+      <section class="view" id="v-account" hidden>
+        <div class="card">
+          <div class="section-head"><h2>Admin Account</h2></div>
+          <p class="muted">Change the administrator email and password. The new details are stored on the server,
+             so they stay in place through every future app update. Saving signs out all other admin sessions.</p>
+          <p>Current admin username: <b id="curUsername">—</b></p>
+          <p>Current admin email: <b id="curEmail">—</b></p>
+          <form id="accForm" class="formgrid">
+            <div class="field"><label>New admin username</label><input id="auser" type="text" maxlength="80" autocomplete="off" placeholder="leave blank to keep"><small class="muted">Letters, numbers, dot, dash and underscore.</small></div>
+            <div class="field"><label>New admin email</label><input id="aemail" type="email" maxlength="160" placeholder="leave blank to keep"></div>
+            <div class="field"><label>New admin password</label><input id="apass" type="password" minlength="8" maxlength="200" placeholder="leave blank to keep"><small class="muted">At least 8 characters, mixing at least two of: letters, numbers, symbols.</small></div>
+            <div class="field"><label>Repeat new password</label><input id="apass2" type="password" maxlength="200"></div>
+            <div class="field"><label>Current admin password (required)</label><input id="acur" type="password" required maxlength="200"></div>
+            <button class="btn primary">Save admin details</button>
+          </form>
+          <p id="accMsg"></p>
+        </div>
+      </section>
+
+      <!-- App update -->
+      <section class="view" id="v-update" hidden>
+        <div class="card">
+          <div class="section-head"><h2>App Update</h2></div>
+          <p class="muted">Publishing an update makes the new version <b>live immediately</b>. The server validates the package,
+             extracts the required web files securely, and publishes them to the update channel. Students receive only
+             the web assets needed to run the new version — the original ZIP is <b>never</b> sent to a student's device.</p>
+          <div id="currentUpdate"></div>
+          <form id="updForm" class="formgrid">
+            <div class="field"><label>Version label</label><input id="uversion" maxlength="40" placeholder="e.g. 8.0"></div>
+            <div class="field"><label>Package (.zip, admin only)</label><input id="uzip" type="file" accept=".zip"><small class="muted" id="uprog"></small></div>
+            <div class="field full"><label>Release notes</label><textarea id="unotes" rows="3" maxlength="4000"></textarea></div>
+            <div class="field"><label>Confirm admin password</label><input id="upassword" type="password" required maxlength="200"></div>
+            <button class="btn primary">Publish update</button>
+          </form>
+          <p id="umsg"></p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SUBJECTS=GBUI.SUBJECTS;
+const say=(t,cls="ok")=>{$("msg").innerHTML=`<p class="${cls}">${GBUI.esc(t)}</p>`;setTimeout(()=>{$("msg").innerHTML=""},6000)};
+
+/* ------------------------- admin side menu ------------------------- */
+const VIEWS=[
+  {id:"overview", icon:"📊", label:"Overview",           desc:"Key numbers at a glance"},
+  {id:"verify",   icon:"🪪", label:"Verification of Students Account", desc:"Approve or decline new accounts"},
+  {id:"students", icon:"👥", label:"Students & Progress",desc:"Progress and password resets"},
+  {id:"materials",icon:"📚", label:"Learning Materials", desc:"Publish notes, files and videos"},
+  {id:"cbt",      icon:"🎯", label:"CBT Tests",          desc:"Create and manage tests"},
+  {id:"bank",     icon:"🧠", label:"Question Bank",      desc:"View, edit and delete questions"},
+  {id:"ann",      icon:"📢", label:"Announcements",      desc:"Post, edit or delete announcements"},
+  {id:"feedback", icon:"⭐", label:"Feedback & Ratings",  desc:"Student ratings and complaints"},
+  {id:"account",  icon:"🔑", label:"Admin Account",      desc:"Change admin email and password"},
+  {id:"update",   icon:"⬆️", label:"App Update",         desc:"Publish a new app version"}
+];
+
+function mountAdminShell(){
+  const host=$("shell");
+  host.classList.add("shell");
+  const main=host.querySelector(".main");
+  host.insertAdjacentHTML("afterbegin",`
+    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu">☰ Menu</button>
+    <div class="scrim" id="scrim" hidden></div>
+    <aside class="sidebar" id="sidebar">
+      <a class="side-brand" href="/admin.html">
+        <img class="logo-transparent" src="/assets/icon-light.png" alt="Gifted Brainz Tutorial">
+        <span>Admin Console<br><small>Gifted Brainz</small></span>
+      </a>
+      <nav class="sidenav" aria-label="Admin menu">${VIEWS.map(v=>`
+        <a href="#${v.id}" data-view="${v.id}"><span class="ic" aria-hidden="true">${v.icon}</span>
+        <span class="nav-text"><span class="lbl">${v.label}</span><small>${v.desc}</small></span><span class="nav-badge" data-badge="${v.id}" hidden></span></a>`).join("")}
+        <a href="/dashboard.html"><span class="ic" aria-hidden="true">🏠</span><span class="nav-text"><span class="lbl">Student View</span><small>Open the student portal</small></span></a>
+      </nav>
+      <div class="side-foot">Gifted Brainz Tutorial<br>Admin console</div>
+    </aside>`);
+  host.appendChild(main);
+  const sb=$("sidebar"), scrim=$("scrim");
+  $("menuToggle").onclick=()=>{sb.classList.toggle("open");scrim.hidden=!sb.classList.contains("open")};
+  scrim.onclick=()=>{sb.classList.remove("open");scrim.hidden=true};
+  sb.addEventListener("click",e=>{const a=e.target.closest("[data-view]");if(!a)return;e.preventDefault();show(a.dataset.view);sb.classList.remove("open");scrim.hidden=true});
+}
+
+function show(id){
+  if(!VIEWS.some(v=>v.id===id)) id="overview";
+  VIEWS.forEach(v=>{const el=$("v-"+v.id); if(el) el.hidden=v.id!==id});
+  document.querySelectorAll("[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===id));
+  const v=VIEWS.find(v=>v.id===id);
+  $("viewTitle").textContent=v?v.label:"Overview";
+  location.hash=id;
+}
+function badge(view,count){
+  const el=document.querySelector(`[data-badge="${view}"]`);
+  if(!el) return;
+  el.textContent=count>99?"99+":String(count);
+  el.hidden=!count;
+}
+
+/* --------------------------- rich text editor --------------------------- */
+/* A small toolbar over a contenteditable box: bold, italic, underline,
+   headings, lists, quotes, links and emojis.
+
+   Why the mousedown/preventDefault dance below matters: pressing a toolbar
+   button used to move focus out of the editable area first, which collapsed
+   the text selection. document.execCommand then had nothing to work on, so
+   Bold, Italic and friends appeared to do nothing at all. Blocking the default
+   mousedown keeps the caret and selection exactly where the admin left them,
+   and the saved range is restored as a second safety net. */
+const EMOJIS=["😀","😊","👍","🙏","🎉","🔥","✅","❗","⚠️","📌","📚","✏️","🧠","🏆","⏰","💡","❤️","⭐","📢","🎯"];
+function editor(host, placeholder){
+  const box=document.createElement("div");
+  box.className="rte";
+  box.innerHTML=`
+    <div class="rte-tools">
+      <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+      <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+      <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+      <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+      <button type="button" data-cmd="superscript" title="Superscript">x²</button>
+      <button type="button" data-cmd="subscript" title="Subscript">x₂</button>
+      <span class="sep"></span>
+      <button type="button" data-block="h3" title="Heading">H</button>
+      <button type="button" data-block="p" title="Normal text">¶</button>
+      <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+      <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+      <button type="button" data-block="blockquote" title="Quote">❝</button>
+      <span class="sep"></span>
+      <button type="button" data-link="1" title="Insert link">🔗 Link</button>
+      <button type="button" data-emoji="1" title="Insert emoji">🙂 Emoji</button>
+      <span class="sep"></span>
+      <button type="button" data-cmd="removeFormat" title="Clear formatting">✕ Clear</button>
+    </div>
+    <div class="emoji-pad" hidden>${EMOJIS.map(e=>`<button type="button" data-e="${e}">${e}</button>`).join("")}</div>
+    <div class="rte-area" contenteditable="true" data-ph="${placeholder||"Write here…"}"></div>`;
+  host.appendChild(box);
+  const area=box.querySelector(".rte-area");
+  const pad=box.querySelector(".emoji-pad");
+  const tools=box.querySelector(".rte-tools");
+
+  // Produce <b>/<i> tags rather than inline styles: the app's sanitiser keeps
+  // tags, so formatting written here survives a round-trip to the server.
+  try{ document.execCommand("styleWithCSS",false,false); }catch{}
+
+  let saved=null;
+  const insideArea=node=>node && (node===area || area.contains(node.nodeType===3?node.parentNode:node));
+  function remember(){
+    const sel=window.getSelection();
+    if(sel && sel.rangeCount && insideArea(sel.getRangeAt(0).commonAncestorContainer)) saved=sel.getRangeAt(0).cloneRange();
+  }
+  function restore(){
+    const sel=window.getSelection();
+    if(saved){ sel.removeAllRanges(); sel.addRange(saved); return; }
+    // Nothing was selected yet: put the caret at the end of the box.
+    area.focus();
+    const r=document.createRange(); r.selectNodeContents(area); r.collapse(false);
+    sel.removeAllRanges(); sel.addRange(r);
+  }
+  ["keyup","mouseup","input","focus"].forEach(ev=>area.addEventListener(ev,remember));
+  document.addEventListener("selectionchange",()=>{ remember(); syncState(); });
+
+  function run(fn){
+    area.focus();
+    restore();
+    fn();
+    remember();
+    syncState();
+    area.dispatchEvent(new Event("input",{bubbles:true}));
+  }
+  // Keeping focus inside the editable area is the whole fix.
+  tools.addEventListener("mousedown",e=>{ if(e.target.closest("button")) e.preventDefault(); });
+  pad.addEventListener("mousedown",e=>{ if(e.target.closest("button")) e.preventDefault(); });
+
+  tools.addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    e.preventDefault();
+    if(b.dataset.cmd) run(()=>document.execCommand(b.dataset.cmd,false,null));
+    else if(b.dataset.block) run(()=>document.execCommand("formatBlock",false,b.dataset.block==="p"?"p":b.dataset.block));
+    else if(b.dataset.emoji){ pad.hidden=!pad.hidden; }
+    else if(b.dataset.link){
+      const url=prompt("Paste the link (it will be clickable for students):","https://");
+      if(url && /^(https?:\/\/|mailto:|tel:)/i.test(url)) run(()=>document.execCommand("createLink",false,url));
+      else if(url) alert("Please use a link that starts with http:// or https://");
+    }
+  });
+  pad.addEventListener("click",e=>{
+    const b=e.target.closest("[data-e]"); if(!b) return;
+    e.preventDefault();
+    run(()=>document.execCommand("insertText",false,b.dataset.e));
+  });
+
+  // Highlight whichever styles apply where the caret currently sits.
+  function syncState(){
+    if(!area.isConnected) return;
+    tools.querySelectorAll("[data-cmd]").forEach(b=>{
+      let on=false;
+      try{ on=document.queryCommandState(b.dataset.cmd); }catch{}
+      b.classList.toggle("on",!!on);
+    });
+  }
+
+  // Keyboard shortcuts, so Ctrl/Cmd+B works even where the browser ignores it.
+  area.addEventListener("keydown",e=>{
+    if(!(e.ctrlKey||e.metaKey)) return;
+    const map={b:"bold",i:"italic",u:"underline"};
+    const cmd=map[e.key.toLowerCase()];
+    if(!cmd) return;
+    e.preventDefault();
+    run(()=>document.execCommand(cmd,false,null));
+  });
+
+  // Pasted content comes in as plain text so stray styling never breaks the layout.
+  area.addEventListener("paste",e=>{
+    e.preventDefault();
+    const text=(e.clipboardData||window.clipboardData).getData("text/plain");
+    run(()=>document.execCommand("insertText",false,text));
+  });
+
+  return {
+    get(){ const html=area.innerHTML.trim(); return (html==="<br>"||html==="<p><br></p>")?"":html; },
+    set(html){ area.innerHTML=html||""; saved=null; },
+    clear(){ area.innerHTML=""; saved=null; },
+    focus(){ area.focus(); }
+  };
+}
+
+/* ------------------------------- sign in ------------------------------- */
+$("lf").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const m=$("lm"); m.className=""; m.textContent="Checking your details…";
+  try{
+    const j=await GB.api("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:$("username").value,password:$("password").value})});
+    localStorage.gbToken=j.token; localStorage.gbAdminToken=j.token;
+    m.className="ok"; m.textContent="Welcome back.";
+    start();
+  }catch(err){m.className="error";m.textContent=err.message}
+});
+
+/* ------------------------------- boot --------------------------------- */
+let nbody,abody,bmQuestion,bmPassage,wired=false;
+async function start(){
+  document.body.classList.remove("admin-login-page");
+  $("login").hidden=true; $("panel").hidden=false;
+  if(!document.getElementById("sidebar")) mountAdminShell();
+  if(!wired){
+    wired=true;
+    nbody=editor($("nbodyEditor"),"Type the note. Links you paste become clickable for students.");
+    abody=editor($("abodyEditor"),"Type your announcement. Bold, italic, lists, emojis and links all work.");
+    SUBJECTS.forEach(s=>{
+      $("nsubject").insertAdjacentHTML("beforeend",`<option>${s}</option>`);
+      $("tsubject").insertAdjacentHTML("beforeend",`<option>${s}</option>`);
+    });
+    addQuestion();
+    bmQuestion=editor($("bmQuestion"),"Write the question. Formatting, superscript and subscript are available.");
+    bmPassage=editor($("bmPassage"),"Optional shared passage…");
+    ["bsubject","bmSubject","bankFilter"].forEach(id=>{SUBJECTS.forEach(s=>$(id).insertAdjacentHTML("beforeend",`<option value="${s}">${s}</option>`));});
+    $("bankFilter").insertAdjacentHTML("afterbegin",`<option value="">All subjects</option>`);
+    $("tsubject").addEventListener("change",()=>{
+      $("tduration").value=$("tsubject").value==="Mathematics"?"50":"40";
+    });
+    $("tduration").value=$("tsubject").value==="Mathematics"?"50":"40";
+    wire();
+  }
+  show((location.hash||"#overview").slice(1));
+  initLeaderboardControls();
+  await Promise.all([overview(),pending(),students(),notes(),tests(),bank(),anns(),feedback(),account(),update()]);
+}
+if(localStorage.gbAdminToken){ GB.api("/api/admin/overview").then(start).catch(()=>{}); }
+
+/* ----------------------------- overview ------------------------------- */
+async function overview(){
+  const o=await GB.api("/api/admin/overview");
+  $("stats").innerHTML=[
+    ["👥",o.students,"Students"],["🪪",o.pendingApprovals||0,"Awaiting approval"],
+    ["🎯",o.publishedTests+"/"+o.tests,"Published CBTs"],
+    ["📚",o.notes,"Materials"],["📢",o.announcements,"Announcements"],
+    ["📝",o.results,"Submissions"],["📈",o.averageScore+"%","Average score"],
+    ["⭐",(o.rating||0)+"/5","App rating"]
+  ].map(([i,v,l])=>`<div class="statcard plain"><div class="ic">${i}</div><strong>${GBUI.esc(v)}</strong><small>${l}</small></div>`).join("");
+  badge("verify",Number(o.pendingApprovals)||0);
+  const st=o.storage||{};
+  const storageEl=$("storageStatus");
+  if(storageEl){
+    storageEl.hidden=!!st.persistent;
+    if(!st.persistent){
+      storageEl.className="notice error";
+      storageEl.innerHTML="<b>Central storage warning:</b> "+GBUI.esc((st.notes||[]).join(" ")||"Persistent storage is unavailable.")+" Student registrations, verification requests and admin changes must not use device-local storage.";
+    }
+  }
+  const r=await GB.api("/api/admin/results");
+  $("recent").innerHTML=r.length?r.slice(0,10).map(x=>`<div class="adminrow"><span class="nm">${GBUI.esc(x.testTitle)}</span><span class="sc g-${GBUI.GRADE(x.score).band}">${x.score}% <small>${GBUI.GRADE(x.score).emoji}</small></span><span class="tc">${new Date(x.date||Date.now()).toLocaleDateString()}</span></div>`).join(""):'<p class="muted">No submissions yet.</p>';
+}
+
+/* ------------------- verification of student accounts ----------------- */
+async function pending(){
+  const list=await GB.api("/api/admin/pending");
+  badge("verify",list.filter(u=>u.approval==="pending").length);
+  $("pendingList").innerHTML=list.length?list.map(u=>`<div class="adminrow">
+      <span class="nm"><b>${GBUI.esc(u.name)}</b><small>${GBUI.esc(u.username)} • ${GBUI.esc(u.email||"no email")}</small>
+        <small>Requested ${u.requestedAt?new Date(u.requestedAt).toLocaleString():"—"}</small></span>
+      <span class="tc">${u.approval==="pending"?'<span class="pill warn">🕓 Awaiting approval</span>':'<span class="pill bad">✕ Declined</span>'}</span>
+      <span class="factions">
+        <button class="btn primary" type="button" data-approve="${GBUI.esc(u.id)}">✓ Approve</button>
+        ${u.approval==="pending"?`<button class="btn danger" type="button" data-reject="${GBUI.esc(u.id)}">✕ Decline</button>`:""}
+      </span></div>`).join(""):'<p class="muted">No accounts are waiting for approval. Every registered student has been verified.</p>';
+}
+
+/* ----------------------------- students ------------------------------- */
+async function students(){
+  const list=await GB.api("/api/admin/students");
+  $("studentsList").innerHTML=list.length?list.map(s=>`<div class="adminrow click" data-student="${GBUI.esc(s.id)}">
+      <span class="nm"><b>${GBUI.esc(s.name)}</b><small>${GBUI.esc(s.username)} • ${GBUI.esc(s.email||"")}</small>
+        ${s.approval!=="approved"?`<small class="pill warn">${s.approval==="pending"?"🕓 Awaiting approval":"✕ Declined"}</small>`:""}</span>
+      <span class="sc">${s.average}%</span><span class="tc">${s.tests} test${s.tests===1?"":"s"}</span>
+      <span class="factions">
+        <button class="btn light" type="button" data-reset-student="${GBUI.esc(s.id)}" data-name="${GBUI.esc(s.name)}">🔑 Reset password</button>
+        <button class="btn light" type="button" data-suspend-student="${GBUI.esc(s.id)}" data-status="${s.status}">${s.status==="suspended"?"Reactivate":"Suspend"}</button>
+        <button class="btn danger" type="button" data-delete-student="${GBUI.esc(s.id)}">Delete</button></span></div>`).join(""):'<p class="muted">No students registered yet.</p>';
+}
+
+/* A small modal so the admin can type a new password for a student who has
+   forgotten theirs — item 1 of the requested changes. */
+function askNewPassword(studentName){
+  return new Promise(resolve=>{
+    const modal=document.createElement("div"); modal.className="modal";
+    modal.innerHTML=`<div class="modal-box" role="dialog" aria-modal="true">
+      <div class="section-head"><h2>Reset password</h2><button class="btn light" type="button" data-cancel>✕</button></div>
+      <p class="muted">Set a new password for <b>${GBUI.esc(studentName)}</b>, then pass it to the student on WhatsApp.
+         They can change it themselves afterwards from <b>My Account</b>.</p>
+      <div class="field"><label>New password</label><input id="rpNew" type="text" maxlength="200" placeholder="at least 8 characters"></div>
+      <div class="field"><label>Repeat new password</label><input id="rpNew2" type="text" maxlength="200"></div>
+      <p class="error" id="rpErr"></p>
+      <div class="factions" style="justify-content:flex-end">
+        <button class="btn light" type="button" data-cancel>Cancel</button>
+        <button class="btn light" type="button" data-suggest>🎲 Suggest one</button>
+        <button class="btn primary" type="button" data-save>Save new password</button></div></div>`;
+    document.body.appendChild(modal); document.body.classList.add("noscroll");
+    const finish=v=>{modal.remove();document.body.classList.remove("noscroll");resolve(v)};
+    modal.addEventListener("click",e=>{
+      if(e.target===modal||e.target.closest("[data-cancel]")) return finish(null);
+      if(e.target.closest("[data-suggest]")){
+        const pick="GBT"+Math.floor(1000+Math.random()*9000)+"!"+"abcdefghjkmnpqrstuvwxyz".charAt(Math.floor(Math.random()*23));
+        modal.querySelector("#rpNew").value=pick; modal.querySelector("#rpNew2").value=pick; return;
+      }
+      if(e.target.closest("[data-save]")){
+        const a=modal.querySelector("#rpNew").value, b=modal.querySelector("#rpNew2").value;
+        const err=modal.querySelector("#rpErr");
+        if(a.length<8){err.textContent="The new password must be at least 8 characters.";return}
+        if(a!==b){err.textContent="The two passwords do not match.";return}
+        finish(a);
+      }
+    });
+    setTimeout(()=>modal.querySelector("#rpNew")?.focus(),0);
+  });
+}
+
+document.addEventListener("click",async e=>{
+  const approve=e.target.closest("[data-approve]");
+  if(approve){ e.stopPropagation();
+    try{ const r=await GB.api("/api/admin/pending/"+encodeURIComponent(approve.dataset.approve)+"/approve",{method:"POST"});
+      say(r.message||"Account approved."); pending(); students(); overview(); }catch(err){say(err.message,"error")}
+    return; }
+  const reject=e.target.closest("[data-reject]");
+  if(reject){ e.stopPropagation();
+    const ok=await GBUI.confirmAction("Decline this account request?","The student will be told to contact support on the Help page. You can approve the account later if you change your mind.","Yes, decline");
+    if(!ok) return;
+    try{ const r=await GB.api("/api/admin/pending/"+encodeURIComponent(reject.dataset.reject)+"/reject",{method:"POST"});
+      say(r.message||"Request declined."); pending(); students(); overview(); }catch(err){say(err.message,"error")}
+    return; }
+  const reset=e.target.closest("[data-reset-student]");
+  if(reset){ e.stopPropagation();
+    const pw=await askNewPassword(reset.dataset.name||"this student");
+    if(!pw) return;
+    try{ await GB.api("/api/admin/students/"+encodeURIComponent(reset.dataset.resetStudent),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
+      say("Password reset. Give the student the new password: "+pw); }catch(err){say(err.message,"error")}
+    return; }
+  const suspend=e.target.closest("[data-suspend-student]");
+  if(suspend){ e.stopPropagation(); const id=suspend.dataset.suspendStudent, next=suspend.dataset.status==="suspended"?"active":"suspended"; const ok=await GBUI.confirmAction(next==="suspended"?"Suspend this student?":"Reactivate this student?",next==="suspended"?"The student will not be able to log in until the account is reactivated.":"The student will regain access to the portal.",next==="suspended"?"Yes, suspend":"Yes, reactivate"); if(!ok)return; try{await GB.api("/api/admin/students/"+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:next})});students();say(next==="suspended"?"Student suspended.":"Student reactivated.");}catch(err){say(err.message,"error")} return; }
+  const delStudent=e.target.closest("[data-delete-student]");
+  if(delStudent){ e.stopPropagation(); const id=delStudent.dataset.deleteStudent; const ok=await GBUI.confirmAction("Delete this student account?","This permanently removes the student profile and every CBT result attached to it.","Yes, delete account"); if(!ok)return; try{await GB.del("/api/admin/students/"+encodeURIComponent(id));students();pending();overview();say("Student account deleted.");}catch(err){say(err.message,"error")} return; }
+  const row=e.target.closest("[data-student]");
+  if(!row) return;
+  try{
+    const p=await GB.api("/api/admin/students/"+encodeURIComponent(row.dataset.student)+"/progress");
+    $("pTitle").textContent="Progress — "+p.student.name;
+    $("progressBody").innerHTML=`
+      <div class="statgrid">
+        <div class="statcard plain"><div class="ic">📝</div><strong>${p.tests}</strong><small>Tests taken</small></div>
+        <div class="statcard plain"><div class="ic">🎯</div><strong class="g-${GBUI.GRADE(p.average).band}">${p.average}% ${GBUI.GRADE(p.average).emoji}</strong><small>Average — ${GBUI.esc(GBUI.GRADE(p.average).word)}</small></div>
+        <div class="statcard plain"><div class="ic">🏅</div><strong>${p.best}%</strong><small>Best score</small></div>
+        <div class="statcard plain"><div class="ic">📅</div><strong>${p.joined?new Date(p.joined).toLocaleDateString():"—"}</strong><small>Joined</small></div>
+      </div>
+      <div class="subjectgrid">${p.bySubject.map(s=>`<div class="subject-card static"><b>${GBUI.SUBJECT_ICONS[s.subject]||"📗"} ${GBUI.esc(s.subject)}</b>
+        <div class="progress"><i style="width:${s.average}%"></i></div>
+        <small>${s.average}% average • best ${s.best}% • ${s.tests} test${s.tests===1?"":"s"}</small></div>`).join("")}</div>
+      <h3>Every submission</h3>
+      ${p.results.length?p.results.map(r=>{const g=GBUI.GRADE(r.score);return `<div class="adminrow"><span class="nm"><b>${GBUI.esc(r.testTitle)}</b><small>${GBUI.esc(r.subject||"")} • ${new Date(r.date||Date.now()).toLocaleString()}</small></span><span class="sc g-${g.band}">${r.score}% <small>${g.emoji}</small></span><span class="tc">${r.correct}✔ ${r.wrong}✘ ${r.unanswered}–</span></div>`}).join(""):'<p class="muted">This student has not submitted any CBT yet.</p>'}`;
+    $("progressCard").hidden=false;
+    $("progressCard").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(err){say(err.message,"error")}
+});
+
+/* ----------------------------- materials ------------------------------ */
+async function notes(){
+  const list=await GB.api("/api/admin/notes");
+  const bySubject=SUBJECTS.map(s=>{
+    const items=list.filter(n=>n.subject===s);
+    if(!items.length) return "";
+    return `<h3>${GBUI.SUBJECT_ICONS[s]} ${s} <small class="muted">(${items.length})</small></h3>`+
+      GBUI.collapsible("adm-"+s.replace(/\W/g,""), items.map(n=>`<div class="adminrow">
+        <span class="nm"><b>${GBUI.esc(n.title)}</b><small>${GBUI.esc(n.topic||"")} ${(n.attachments||[]).length} file(s)</small></span>
+        <span class="tc">${n.published?"✅ Published":"🕓 Draft"}</span>
+        <span class="factions">
+          <button class="btn light" type="button" data-toggle-note="${GBUI.esc(n.id)}" data-pub="${n.published?0:1}">${n.published?"Unpublish":"Publish"}</button>
+          <button class="btn danger" type="button" data-del-note="${GBUI.esc(n.id)}">Delete</button>
+        </span></div>`));
+  }).join("");
+  $("notesList").innerHTML=bySubject||'<p class="muted">No materials yet.</p>';
+}
+
+async function uploadAll(input,progressEl,bar){
+  const out=[];
+  const files=Array.from(input.files||[]);
+  if(!files.length){ if(progressEl)progressEl.textContent="No attachments selected."; if(bar){bar.style.width="0%";} return out; }
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const mb=(f.size/1048576).toFixed(1);
+    if(progressEl)progressEl.textContent=`Uploading ${f.name} (${mb} MB) — 0% (${i+1} of ${files.length})`;
+    try{
+      const up=await GB.upload(f,pct=>{
+        const overall=Math.round(((i+pct/100)/files.length)*100);
+        if(progressEl)progressEl.textContent=`Uploading ${f.name} (${mb} MB) — ${pct}% (${i+1} of ${files.length})`;
+        if(bar)bar.style.width=overall+"%";
+      });
+      out.push({key:up.fileKey,fileName:up.fileName,contentType:up.contentType,size:up.size});
+    }catch(err){
+      if(progressEl)progressEl.textContent="";
+      if(bar)bar.style.width="0%";
+      throw new Error(`${f.name} could not be uploaded: ${err.message}`);
+    }
+  }
+  if(progressEl)progressEl.textContent=`${out.length} file(s) uploaded successfully — 100%.`;
+  if(bar)bar.style.width="100%";
+  return out;
+}
+
+/* -------------------------------- CBTs -------------------------------- */
+function addQuestion(){
+  const container=$("qs");
+  const index=container.querySelectorAll(".qblock").length+1;
+  container.insertAdjacentHTML("beforeend",`<div class="qblock" data-index="${index}">
+    <div class="qhead"><b>Question ${index}</b><button class="btn light" type="button" data-remove-q>Remove</button></div>
+    <div class="q-type"><label>Question type <select class="qtType"><option value="mcq">Multiple choice</option><option value="passage">Passage question</option></select></label>
+      <label class="check"><input class="qRoman" type="checkbox"> Roman-numeral format (I–IV)</label>
+      <span class="muted">Use Roman-numeral format only for Physics, Chemistry and Biology. Each of those subjects needs 8 of 40 questions in this format.</span></div>
+    <div class="passage-wrap"><div class="notice"><b>English passage-setting guide:</b> Create one unique Passage Group ID for the passage, paste the full passage once, then use that same ID and passage for every question based on it. Do not create a new passage ID for each question. Keep each question's options and correct answer tied to that passage.</div><label>Passage group ID <small class="muted">(same ID for every question attached to this passage)</small></label><input class="qpassageId" placeholder="e.g. ENG-P01"><label>Shared passage shown above the related questions</label><div class="qpassage-editor"></div><small class="muted">Preview rule: students will see the shared passage before the question. Use the same passage text for all questions in this group.</small></div>
+    <label>Question</label><div class="qtEditor"></div>
+    <label>Question image (optional)</label><input class="qimage" type="file" accept="image/*">
+    <div class="formgrid">${[0,1,2,3].map(n=>`<div class="field"><label>Option ${"ABCD"[n]}</label><input class="qo" placeholder="Option ${"ABCD"[n]}" required maxlength="1000"></div>`).join("")}</div>
+    <label>Correct option <select class="qa">${[0,1,2,3].map(n=>`<option value="${n}">${"ABCD"[n]}</option>`).join("")}</select></label>
+    <label>Explanation (optional)</label><input class="qe" placeholder="Reason shown after submission" maxlength="1500">
+  </div>`);
+  const block=container.lastElementChild;
+  block._qEditor=editor(block.querySelector(".qtEditor"),"Write the question. Use bold, italic, underline, superscript and subscript.");
+  block._pEditor=editor(block.querySelector(".qpassage-editor"),"Write the shared passage here…");
+  const type=block.querySelector(".qtType"), wrap=block.querySelector(".passage-wrap");
+  const upd=()=>wrap.hidden=type.value!=="passage";
+  type.addEventListener("change",upd); upd();
+}
+function collectQuestion(block){
+  return {type:block.querySelector(".qtType").value,roman:!!block.querySelector(".qRoman")?.checked,passageId:block.querySelector(".qpassageId").value,passage:block._pEditor?.get()||"",q:block._qEditor?.get()||"",options:[...block.querySelectorAll(".qo")].map(x=>x.value),answer:Number(block.querySelector(".qa").value),explanation:block.querySelector(".qe").value,imageFile:block.querySelector(".qimage").files[0]||null};
+}
+async function prepareQuestions(blocks){
+  const out=[];
+  for(const b of blocks){ const q=collectQuestion(b); if(q.imageFile){const up=await GB.upload(q.imageFile,()=>{});q.image={key:up.fileKey,fileName:up.fileName,contentType:up.contentType,size:up.size};delete q.imageFile;} else delete q.imageFile; out.push(q); }
+  return out;
+}
+
+/* --------------------------- question bank ---------------------------- */
+let bankCache=[];
+function bankRow(q){
+  const chip=q.needsReview?'<span class="pill warn">⚠️ Needs answer review</span>':'<span class="pill good">✅ Ready</span>';
+  return `<div class="qb-row" data-qid="${GBUI.esc(q.id)}">
+    <div class="qb-main">
+      <div class="qb-q">${GBUI.renderBody(q.q,"html")}</div>
+      <div class="qb-opts">${(q.options||[]).map((o,i)=>`<span class="qb-opt ${i===q.answer?"is-answer":""}">${"ABCD"[i]}. ${GBUI.esc(o)}${i===q.answer?" ✓":""}</span>`).join("")}</div>
+      ${q.explanation?`<div class="qb-exp">💡 ${GBUI.esc(q.explanation)}</div>`:""}
+      <small class="muted">${GBUI.esc(q.subject||"")} • ${q.passageId?"Passage question":"Multiple choice"}${q.roman?" • <b>Roman-numeral I–IV</b>":""}${q.source?" • from "+GBUI.esc(q.source):""}</small>
+    </div>
+    <div class="qb-side">${chip}
+      <span class="factions">
+        <button class="btn light" type="button" data-edit-bank="${GBUI.esc(q.id)}">✎ Edit</button>
+        <button class="btn danger" type="button" data-del-bank="${GBUI.esc(q.id)}">Delete</button>
+      </span></div></div>`;
+}
+async function bank(){
+  const subject=$("bankFilter").value||"";
+  bankCache=await GB.api("/api/admin/question-bank"+(subject?"?subject="+encodeURIComponent(subject):""));
+  const mode=$("bankReviewFilter").value||"";
+  const list=bankCache.filter(q=>mode==="review"?q.needsReview:mode==="ready"?!q.needsReview:true);
+  const review=bankCache.filter(q=>q.needsReview).length;
+  const target=subject?200:1000;
+  const complete=bankCache.length>=target;
+  $("bankCount").innerHTML=`${bankCache.length} question${bankCache.length===1?"":"s"} in ${subject?GBUI.esc(subject):"all subjects"} • target ${target}`+
+    (complete?` • <b>Target reached.</b> ✅`:` • <b>${Math.max(0,target-bankCache.length)}</b> more needed.`)+
+    (review?` • <b>${review}</b> still need the correct answer confirmed.`:" • every question has a confirmed answer. ✅");
+  $("bankList").innerHTML=list.length?GBUI.collapsible("bankMore",list.map(bankRow),8):"<p class='muted'>No questions match this filter.</p>";
+}
+
+/* Edit one banked question in place. */
+function editBankModal(q){
+  const modal=document.createElement("div"); modal.className="modal";
+  modal.innerHTML=`<div class="modal-box wide" role="dialog" aria-modal="true">
+    <div class="section-head"><h2>Edit question</h2><button class="btn light" type="button" data-cancel>✕</button></div>
+    <div class="formgrid">
+      <div class="field"><label>Subject</label><select id="ebSubject">${SUBJECTS.map(s=>`<option value="${s}" ${s===q.subject?"selected":""}>${s}</option>`).join("")}</select></div>
+      <div class="field"><label>Correct option</label><select id="ebAnswer">${[0,1,2,3].map(n=>`<option value="${n}" ${n===q.answer?"selected":""}>${"ABCD"[n]}</option>`).join("")}</select></div>
+      <div class="field full"><label>Question</label><div id="ebQuestion"></div></div>
+      ${[0,1,2,3].map(n=>`<div class="field"><label>Option ${"ABCD"[n]}</label><input id="ebO${n}" maxlength="1000" value="${GBUI.esc((q.options||[])[n]||"")}"></div>`).join("")}
+      <div class="field full"><label>Explanation (optional)</label><input id="ebExp" maxlength="1500" value="${GBUI.esc(q.explanation||"")}"></div>
+      <label class="check"><input id="ebRoman" type="checkbox" ${q.roman?"checked":""}> Roman-numeral format (I–IV)</label>
+      <label class="check"><input id="ebReview" type="checkbox" ${q.needsReview?"checked":""}> Still needs answer review</label>
+    </div>
+    <p class="error" id="ebErr"></p>
+    <div class="factions" style="justify-content:flex-end"><button class="btn light" type="button" data-cancel>Cancel</button><button class="btn primary" type="button" data-save>Save changes</button></div></div>`;
+  document.body.appendChild(modal); document.body.classList.add("noscroll");
+  const ed=editor(modal.querySelector("#ebQuestion"),"Write the question…");
+  ed.set(q.q||"");
+  const close=()=>{modal.remove();document.body.classList.remove("noscroll")};
+  modal.addEventListener("click",async e=>{
+    if(e.target===modal||e.target.closest("[data-cancel]")) return close();
+    if(!e.target.closest("[data-save]")) return;
+    const options=[0,1,2,3].map(n=>modal.querySelector("#ebO"+n).value.trim());
+    const err=modal.querySelector("#ebErr");
+    if(!ed.get().replace(/<[^>]*>/g,"").trim()){err.textContent="The question text cannot be empty.";return}
+    if(options.some(o=>!o)){err.textContent="All four options are required.";return}
+    try{
+      await GB.api("/api/admin/question-bank/"+encodeURIComponent(q.id),{method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({subject:modal.querySelector("#ebSubject").value,q:ed.get(),options,
+          answer:Number(modal.querySelector("#ebAnswer").value),explanation:modal.querySelector("#ebExp").value,
+          roman:modal.querySelector("#ebRoman").checked,needsReview:modal.querySelector("#ebReview").checked})});
+      close(); say("Question updated."); bank();
+    }catch(e2){err.textContent=e2.message}
+  });
+}
+
+async function importBankFile(){
+  const f=$("bfile").files[0]; if(!f){say("Choose a PDF, Word or text document first.","error");return}
+  $("bextract").innerHTML="";
+  try{
+    $("bprog").textContent="Uploading document…";
+    const up=await GB.upload(f,p=>$("bprog").textContent="Uploading document — "+p+"%");
+    $("bprog").textContent="Reading the document and pulling out the questions…";
+    const r=await GB.api("/api/admin/question-bank/import",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({subject:$("bsubject").value,fileKey:up.fileKey,fileName:up.fileName,contentType:up.contentType})});
+    $("bprog").textContent="";
+    $("bextract").innerHTML=extractionCard(r.extraction,f.name);
+    bank(); overview();
+  }catch(e){
+    $("bprog").textContent="";
+    let extra="";
+    try{ extra=e.extraction?extractionCard(e.extraction,f.name):""; }catch{}
+    $("bextract").innerHTML=extra||`<div class="extract-card bad"><b>Extraction failed ❌</b><p>${GBUI.esc(e.message)}</p>
+      <small class="muted">Tip: the document should have numbered questions (1., 2., 3.…), options written as A. B. C. D., and ideally an answer key at the end.</small></div>`;
+    say(e.message,"error");
+  }
+}
+function extractionCard(x,fileName){
+  if(!x) return "";
+  const tone=x.quality==="good"?"good":x.quality==="fair"?"warn":"bad";
+  return `<div class="extract-card ${tone}">
+    <b>${GBUI.esc(x.verdict)}</b>
+    <p>${GBUI.esc(fileName||"Document")}: ${GBUI.esc(x.summary)}</p>
+    <div class="extract-stats">
+      <span>✅ ${x.clean} with a confirmed answer</span>
+      <span>⚠️ ${x.needsReview} need your review</span>
+      <span>➖ ${x.skipped} skipped</span>
+      <span>${x.answerKeyFound?"🔑 Answer key found":"🔑 No answer key found"}</span>
+    </div>
+    ${(x.skippedReasons||[]).length?`<details><summary>Why some blocks were skipped</summary><ul>${x.skippedReasons.map(s=>`<li>Question ${GBUI.esc(s.number)}: ${GBUI.esc(s.reason)}</li>`).join("")}</ul></details>`:""}
+    ${x.needsReview?`<small class="muted">Use the <b>Needs answer review</b> filter below, then edit each flagged question to set the right answer.</small>`:""}
+  </div>`;
+}
+
+async function manualBank(){
+  try{let image=null;const f=$("bmImage").files[0];if(f){const up=await GB.upload(f,()=>{});image={key:up.fileKey,fileName:up.fileName,contentType:up.contentType,size:up.size}}
+    const subject=$("bmSubject").value, roman=!!$("bmRoman").checked;
+    if(roman && !["Physics","Chemistry","Biology"].includes(subject)) throw new Error("Roman-numeral questions are only for Physics, Chemistry and Biology.");
+    await GB.api("/api/admin/question-bank",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({subject,type:$("bmType").value,roman,passageId:$("bmPassageId").value,passage:bmPassage.get(),q:bmQuestion.get(),options:[$("bmA").value,$("bmB").value,$("bmC").value,$("bmD").value],answer:Number($("bmAnswer").value),explanation:$("bmExplanation").value,image})});
+    $("bankManualForm").reset();bmQuestion.clear();bmPassage.clear();say("Question added to the bank.");bank();overview();
+  }catch(e){say(e.message,"error")}
+}
+
+/* ----------------------------- existing tests ------------------------- */
+async function tests(){
+  const list=await GB.api("/api/admin/tests");
+  $("testsList").innerHTML=list.length?list.map(t=>{
+    const roman=["Physics","Chemistry","Biology"].includes(t.subject)?t.questions.filter(q=>q.roman).length:0;
+    return `<div class="adminrow"><span class="nm"><b>${GBUI.esc(t.title)}</b><small>${GBUI.esc(t.subject)} • ${t.questions.length} questions • ${t.duration} min${roman?` • ${roman}/40 Roman-numeral`:""} • ${t.shuffleQuestions!==false?"Q shuffled":"Q fixed"} • ${t.shuffleOptions!==false?"Options shuffled":"Options fixed"}</small></span><span class="tc">${t.published?"✅ Published":"🕓 Draft"}</span><span class="factions"><button class="btn light" type="button" data-edit-test="${GBUI.esc(t.id)}">✎ Edit</button><button class="btn light" type="button" data-toggle-test="${GBUI.esc(t.id)}" data-pub="${t.published?0:1}">${t.published?"Unpublish":"Publish"}</button><button class="btn danger" type="button" data-del-test="${GBUI.esc(t.id)}">Delete</button></span></div>`;
+  }).join(""):"<p class='muted'>No CBTs yet.</p>";
+}
+
+/* ----------------------------- CBT editor ------------------------------ */
+function editTestModal(t){
+  const modal=document.createElement("div"); modal.className="modal";
+  modal.innerHTML=`<div class="modal-box wide" role="dialog" aria-modal="true">
+    <div class="section-head"><h2>Edit CBT</h2><button class="btn light" type="button" data-cancel>✕</button></div>
+    <div class="formgrid">
+      <div class="field full"><label>Test title</label><input id="etTitle" maxlength="200" value="${GBUI.esc(t.title||"")}"></div>
+      <div class="field"><label>Subject</label><input value="${GBUI.esc(t.subject)}" readonly></div>
+      <div class="field"><label>Duration</label><input value="${t.subject==="Mathematics"?50:40} minutes" readonly></div>
+      <div class="field full"><label>Question to edit</label><select id="etIndex">${t.questions.map((q,i)=>`<option value="${i}">Question ${i+1}${q.roman?" — Roman numeral":q.passageId?" — Passage":""}</option>`).join("")}</select></div>
+      <div class="field full"><div class="notice"><b>English passage editor:</b> If this is a passage question, keep the same Passage Group ID and shared passage for every question drawn from that passage. This prevents a question from being attached to the wrong passage.</div><label>Passage Group ID</label><input id="etPassageId" placeholder="e.g. ENG-P01"><label>Shared passage / context</label><textarea id="etPassage" rows="6"></textarea></div>
+      <div class="field full"><label>Question</label><textarea id="etQ" rows="5"></textarea></div>
+      ${[0,1,2,3].map(n=>`<div class="field"><label>Option ${"ABCD"[n]}</label><input id="etO${n}" maxlength="1000"></div>`).join("")}
+      <div class="field"><label>Correct option</label><select id="etA">${[0,1,2,3].map(n=>`<option value="${n}">${"ABCD"[n]}</option>`).join("")}</select></div>
+      <label class="check"><input id="etRoman" type="checkbox"> Roman-numeral format (I–IV)</label>
+      <div class="field full"><label>Explanation</label><textarea id="etExp" rows="3"></textarea></div>
+      <label class="check"><input id="etPub" type="checkbox" ${t.published?"checked":""}> Published</label>
+    </div>
+    <p class="muted">Select any question above, edit it, then save. All 40 questions remain in the CBT. Physics, Chemistry and Biology must keep exactly 8 Roman-numeral questions; English and Mathematics should have none.</p>
+    <p class="error" id="etErr"></p>
+    <div class="factions" style="justify-content:flex-end"><button class="btn light" type="button" data-cancel>Cancel</button><button class="btn primary" type="button" data-save>Save CBT changes</button></div>
+  </div>`;
+  document.body.appendChild(modal); document.body.classList.add("noscroll");
+  const idx=$("etIndex"), passageId=$("etPassageId"), passage=$("etPassage"), qbox=$("etQ"), exp=$("etExp"), roman=$("etRoman");
+  const loadQ=()=>{
+    const q=t.questions[Number(idx.value)]||{};
+    passageId.value=q.passageId||""; passage.value=q.passage||""; qbox.value=String(q.q||"").replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]*>/g,"");
+    [0,1,2,3].forEach(n=>{modal.querySelector("#etO"+n).value=String((q.options||[])[n]||"").replace(/<[^>]*>/g,"")});
+    modal.querySelector("#etA").value=String(Number(q.answer)||0); exp.value=String(q.explanation||"").replace(/<[^>]*>/g,""); roman.checked=!!q.roman;
+  };
+  idx.addEventListener("change",loadQ); loadQ();
+  const close=()=>{modal.remove();document.body.classList.remove("noscroll")};
+  modal.addEventListener("click",async e=>{
+    if(e.target===modal||e.target.closest("[data-cancel]")) return close();
+    if(!e.target.closest("[data-save]")) return;
+    const err=modal.querySelector("#etErr");
+    const i=Number(idx.value), q=t.questions[i]||{};
+    const nq={...q,passageId:passageId.value.trim(),passage:passage.value,q:qbox.value,options:[0,1,2,3].map(n=>modal.querySelector("#etO"+n).value.trim()),answer:Number(modal.querySelector("#etA").value),explanation:exp.value,roman:roman.checked};
+    if(!nq.q.trim()||nq.options.some(v=>!v)){err.textContent="Question text and all four options are required.";return}
+    if(nq.passageId && !nq.passage.trim()){err.textContent="A Passage Group ID requires the shared passage text.";return}
+    if(nq.roman && !/\bI\./i.test(nq.q) || nq.roman && !/\bII\./i.test(nq.q) || nq.roman && !/\bIII\./i.test(nq.q) || nq.roman && !/\bIV\./i.test(nq.q)){err.textContent="Roman-numeral questions must visibly contain I., II., III. and IV.";return}
+    const next=t.questions.map((x,j)=>j===i?nq:x);
+    const romanCount=next.filter(x=>x.roman).length;
+    if(["Physics","Chemistry","Biology"].includes(t.subject) && romanCount!==8){err.textContent=`${t.subject} must contain exactly 8 Roman-numeral questions; this CBT currently has ${romanCount}.`;return}
+    if(["Mathematics","Use of English"].includes(t.subject) && romanCount){err.textContent=`${t.subject} must not contain Roman-numeral questions.`;return}
+    try{
+      await GB.api("/api/admin/tests/"+encodeURIComponent(t.id),{method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({title:modal.querySelector("#etTitle").value,questions:next,published:modal.querySelector("#etPub").checked})});
+      close(); say("CBT updated successfully."); tests(); overview();
+    }catch(e2){err.textContent=e2.message}
+  });
+}
+
+/* ---------------------------- announcements --------------------------- */
+let annCache=[], annRemoved=new Set();
+async function anns(){
+  annCache=await GB.api("/api/admin/announcements");
+  const cards=annCache.map(a=>`<div class="anncard">
+    <div class="matmeta"><small>${new Date(a.createdAt||a.date||Date.now()).toLocaleString()}</small><span class="tc">${a.published?"✅ Published":"🕓 Draft"}</span></div>
+    <h3>${GBUI.esc(a.title)}</h3>
+    <div class="rich">${GBUI.renderBody(a.body,a.bodyFormat||a.format)}</div>
+    ${GBUI.media((a.attachments||a.media||[]).filter(f=>["image","video","audio"].includes(GBUI.kindOf(f))))}
+    ${GBUI.files((a.attachments||a.media||[]).filter(f=>!["image","video","audio"].includes(GBUI.kindOf(f))))}
+    <div class="factions">
+      <button class="btn light" type="button" data-edit-ann="${GBUI.esc(a.id)}">✎ Edit</button>
+      <button class="btn light" type="button" data-toggle-ann="${GBUI.esc(a.id)}" data-pub="${a.published?0:1}">${a.published?"Unpublish":"Publish"}</button>
+      <button class="btn danger" type="button" data-del-ann="${GBUI.esc(a.id)}">Delete</button>
+    </div></div>`);
+  $("annList").innerHTML=annCache.length?GBUI.collapsible("admAnn",cards,4):'<p class="muted">No announcements yet.</p>';
+}
+function renderExistingAnnMedia(items){
+  const list=Array.isArray(items)?items:[];
+  $("aExistingMedia").innerHTML=list.length?list.map(f=>`<div class="filerow" data-existing-key="${GBUI.esc(f.key||"")}"><span class="fic">${String(f.contentType||"").startsWith("video/")?"🎬":"📎"}</span><span class="fname">${GBUI.esc(f.fileName||"Attachment")}</span><button class="btn danger" type="button" data-ann-remove="${GBUI.esc(f.key||"")}">Remove</button></div>`).join(""):"<small class='muted'>No existing attachment.</small>";
+}
+function startAnnEdit(a){
+  annRemoved=new Set();
+  $("aeditId").value=a.id; $("atitle").value=a.title||""; abody.set(a.body||""); $("apub").checked=!!a.published;
+  $("annFormTitle").textContent="Edit announcement"; $("annSubmit").textContent="Save changes"; $("annCancelEdit").hidden=false;
+  renderExistingAnnMedia(a.attachments||a.media||[]);
+  $("aprog").textContent="Remove old files above, then save the announcement to apply the changes.";
+  $("annForm").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function resetAnnForm(){
+  annRemoved=new Set(); $("annForm").reset(); abody.clear(); $("aeditId").value=""; $("aprog").textContent=""; $("aExistingMedia").innerHTML="";
+  $("annFormTitle").textContent="Post Announcement"; $("annSubmit").textContent="Post announcement"; $("annCancelEdit").hidden=true; $("apub").checked=true;
+}
+
+/* --------------------------- feedback & ratings ------------------------ */
+let fbCache={items:[],summary:{}};
+function stars(n){ const k=Math.round(Number(n)||0); return "★".repeat(k)+"☆".repeat(Math.max(0,5-k)); }
+async function feedback(){
+  fbCache=await GB.api("/api/admin/feedback");
+  const s=fbCache.summary||{};
+  const max=Math.max(1,...(s.breakdown||[]).map(b=>b.count));
+  $("fbSummary").innerHTML=`<div class="rating-summary">
+    <div class="rating-big"><strong>${s.average||0}</strong><span class="rating-stars">${stars(s.average)}</span><small>${s.total||0} rating${s.total===1?"":"s"}</small></div>
+    <div class="rating-bars">${(s.breakdown||[]).map(b=>`<div class="rating-bar"><span>${b.star}★</span><i><em style="width:${Math.round(b.count/max*100)}%"></em></i><span>${b.count}</span></div>`).join("")}</div>
+    <div class="statgrid compact">
+      <div class="statcard plain"><div class="ic">💬</div><strong>${(fbCache.items||[]).length}</strong><small>Messages</small></div>
+      <div class="statcard plain"><div class="ic">🚩</div><strong>${s.complaints||0}</strong><small>Complaints</small></div>
+      <div class="statcard plain"><div class="ic">🕓</div><strong>${s.unresolved||0}</strong><small>Not yet handled</small></div>
+    </div></div>`;
+  badge("feedback",Number(s.unresolved)||0);
+  renderFeedbackList();
+}
+function renderFeedbackList(){
+  const mode=$("fbFilter").value||"";
+  const items=(fbCache.items||[]).filter(f=>mode==="open"?!f.resolved:mode?f.kind===mode:true);
+  const cards=items.map(f=>`<div class="fbcard ${f.resolved?"done":""}">
+    <div class="matmeta"><small>${new Date(f.createdAt||Date.now()).toLocaleString()}</small>
+      <span class="pill ${f.kind==="complaint"?"bad":f.kind==="suggestion"?"warn":"good"}">${f.kind==="complaint"?"🚩 Complaint":f.kind==="suggestion"?"💡 Suggestion":"💬 Feedback"}</span></div>
+    <div class="fbhead"><b>${GBUI.esc(f.name||"Student")}</b><small>${GBUI.esc(f.username||"")}${f.email?" • "+GBUI.esc(f.email):""}</small>
+      <span class="rating-stars big">${stars(f.rating)}</span></div>
+    <h4>${GBUI.esc(f.subject||"Feedback")}</h4>
+    <p>${GBUI.esc(f.message||"").replace(/\n/g,"<br>")}</p>
+    ${f.reply?`<div class="notice" style="margin-top:10px"><b>Current admin reply:</b><br>${GBUI.esc(f.reply).replace(/\n/g,"<br>")}</div>`:""}
+    <div class="field full" style="margin-top:10px"><label>Reply to this student</label><textarea rows="3" data-fb-reply-input="${GBUI.esc(f.id)}" maxlength="2000" placeholder="Write a clear reply.">${GBUI.esc(f.reply||"")}</textarea></div>
+    <div class="factions">
+      <button class="btn primary" type="button" data-fb-reply="${GBUI.esc(f.id)}">${f.reply?"Update reply":"Reply"}</button>
+      <button class="btn light" type="button" data-fb-resolve="${GBUI.esc(f.id)}" data-done="${f.resolved?1:0}">${f.resolved?"↺ Mark as not handled":"✓ Mark as handled"}</button>
+      <button class="btn danger" type="button" data-fb-del="${GBUI.esc(f.id)}">Delete</button>
+    </div></div>`);
+  $("fbList").innerHTML=cards.length?GBUI.collapsible("fbMore",cards,5):'<p class="muted">No messages match this filter.</p>';
+}
+
+/* -------------------------- leaderboard controls --------------------- */
+function initLeaderboardControls(){
+  if(!$("lbSubject")) return;
+  $("lbSubject").innerHTML=GBUI.SUBJECTS.map(s=>`<option value="${GBUI.esc(s)}">${GBUI.esc(s)}</option>`).join("");
+  $("clearLbSubject").onclick=async()=>{const subject=$("lbSubject").value;if(!await GBUI.confirmAction(`Clear ${subject} leaderboard?`,`Only the ranking is reset. Student CBT records remain intact.`,`Yes, clear leaderboard`))return;try{const x=await GB.api('/api/admin/leaderboard/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject})});$("lbStatus").textContent=x.message}catch(e){$("lbStatus").textContent=e.message}};
+  $("clearLbAll").onclick=async()=>{if(!await GBUI.confirmAction('Clear general leaderboard?','Student CBT records and dashboard history will not be deleted.','Yes, clear general leaderboard'))return;try{const x=await GB.api('/api/admin/leaderboard/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:''})});$("lbStatus").textContent=x.message}catch(e){$("lbStatus").textContent=e.message}};
+}
+
+/* --------------------------- admin account ---------------------------- */
+async function account(){
+  try{
+    const a=await GB.api("/api/admin/account");
+    $("curEmail").textContent=a.email||"not set";
+    if($("curUsername"))$("curUsername").textContent=a.username||"—";
+  }catch{}
+}
+
+async function update(){
+  const u=await GB.api("/api/admin/app-update");
+  $("currentUpdate").innerHTML=u && u.version
+    ? `<div class="adminrow"><span class="nm"><b>Version ${GBUI.esc(u.version)}</b><small>${GBUI.esc(u.fileName||"")} • ${new Date(u.date||Date.now()).toLocaleString()}</small></span>
+        <span class="factions">
+          <button class="btn gold" type="button" data-download-file="${GBUI.esc(u.fileUrl)}" data-download-name="${GBUI.esc(u.fileName||"update.zip")}">Download package (admin only)</button>
+          <button class="btn danger" type="button" id="delUpd">Remove update</button></span></div>`
+    : '<p class="muted">No update is currently published.</p>';
+  const del=$("delUpd");
+  if(del) del.onclick=async()=>{if(!await GBUI.confirmAction("Remove this published update?","The current update package will be removed from the server. Students will no longer be notified about it.","Yes, remove update"))return;try{await GB.del("/api/admin/app-update");say("Update removed.");update()}catch(e){say(e.message,"error")}};
+}
+
+/* ------------------------------- wiring -------------------------------- */
+function wire(){
+  $("noteForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const btn=$("saveMaterialBtn");
+    const status=$("nprog"), bar=$("nprogress"), barFill=$("nprogressBar");
+    if(btn) {btn.disabled=true;btn.textContent="Saving material…";}
+    bar.hidden=false; barFill.style.width="0%";
+    try{
+      status.textContent="Preparing material — 0%.";
+      const attachments=await uploadAll($("nfiles"),status,barFill);
+      status.textContent="Saving material to central storage — 99%.";
+      const saved=await GB.api("/api/admin/notes",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({title:$("ntitle").value,subject:$("nsubject").value,topic:$("ntopic").value,
+          body:nbody.get(),attachments,published:$("npub").checked})});
+      barFill.style.width="100%";
+      status.textContent=saved.published?"Material saved and published successfully — 100%.":"Material saved as a draft — 100%.";
+      $("noteForm").reset(); nbody.clear();
+      say(saved.published?"Material saved and published successfully.":"Material saved successfully.");
+      notes(); overview();
+    }catch(err){status.textContent="Save failed.";say(err.message,"error")}
+    finally{ if(btn){btn.disabled=false;btn.textContent="Save material";} }
+  });
+
+  $("addQ").onclick=()=>addQuestion();
+  $("qs").addEventListener("click",e=>{
+    if(!e.target.closest("[data-remove-q]")) return;
+    e.target.closest(".qblock").remove();
+    [...document.querySelectorAll("#qs .qblock")].forEach((b,i)=>b.querySelector(".qhead b").textContent="Question "+(i+1));
+  });
+  $("testForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    try{
+      const blocks=[...document.querySelectorAll("#qs .qblock")];
+      if(blocks.length!==40){say(`A CBT must contain exactly 40 questions. You currently have ${blocks.length}.`,"error");return}
+      const questions=await prepareQuestions(blocks);
+      const blank=questions.findIndex(q=>!String(q.q||"").replace(/<[^>]*>/g,"").trim());
+      if(blank>=0){say(`Question ${blank+1} has no text yet.`,"error");return}
+      const subject=$("tsubject").value;
+      const romanCount=questions.filter(q=>q.roman).length;
+      if(["Physics","Chemistry","Biology"].includes(subject) && romanCount!==8){say(`${subject} must contain exactly 8 Roman-numeral questions (20% of 40). You currently have ${romanCount}.`,"error");return}
+      if(["Mathematics","Use of English"].includes(subject) && romanCount){say(`${subject} does not use Roman-numeral questions. Untick the Roman-numeral option.`,"error");return}
+      await GB.api("/api/admin/tests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:$("ttitle").value,subject,duration:Number($("tduration").value),shuffleQuestions:$("tshuffleQ").checked,shuffleOptions:$("tshuffleO").checked,questions,published:$("tpub").checked})});
+      $("testForm").reset();$("qs").innerHTML="";addQuestion();$("tduration").value="40";say("CBT saved. It contains 40 questions with the required timing and format.");tests();overview();
+    }catch(err){say(err.message,"error")}
+  });
+
+  $("bankImportForm").addEventListener("submit",e=>{e.preventDefault();importBankFile()});
+  $("bankManualForm").addEventListener("submit",e=>{e.preventDefault();manualBank()});
+  $("bankFilter").onchange=bank;
+  $("bankReviewFilter").onchange=bank;
+
+  $("annForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const id=$("aeditId").value;
+    try{
+      if(id){
+        const media=await uploadAll($("afiles"),$("aprog"));
+        const existing=annCache.find(a=>a.id===id);
+        const keep=(existing?.attachments||existing?.media||[]).filter(f=>!annRemoved.has(String(f.key||""))).map(f=>({key:f.key,fileName:f.fileName,contentType:f.contentType,size:f.size}));
+        const payload={title:$("atitle").value,body:abody.get(),published:$("apub").checked,media:[...keep,...media]};
+        await GB.api("/api/admin/announcements/"+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        resetAnnForm(); say("Announcement updated."); anns(); overview();
+      }else{
+        const media=await uploadAll($("afiles"),$("aprog"));
+        await GB.api("/api/admin/announcements",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({title:$("atitle").value,body:abody.get(),media,published:$("apub").checked})});
+        resetAnnForm(); say("Announcement posted."); anns(); overview();
+      }
+    }catch(err){say(err.message,"error")}
+  });
+  $("annCancelEdit").onclick=()=>resetAnnForm();
+  $("annRefresh").onclick=()=>anns();
+  $("verifyRefresh").onclick=()=>{pending();overview()};
+  $("fbRefresh").onclick=()=>feedback();
+  $("fbFilter").onchange=renderFeedbackList;
+
+  $("accForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const m=$("accMsg"); m.className=""; m.textContent="";
+    if($("apass").value && $("apass").value!==$("apass2").value){m.className="error";m.textContent="The two new passwords do not match.";return}
+    const newPass=$("apass").value;
+    if(newPass){
+      const classes=[/[A-Za-z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(re=>re.test(newPass)).length;
+      if(newPass.length<8){m.className="error";m.textContent="The new admin password must be at least 8 characters.";return}
+      if(classes<2){m.className="error";m.textContent="The new admin password must mix at least two of: letters, numbers, symbols.";return}
+    }
+    try{
+      const j=await GB.api("/api/admin/account",{method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username:$("auser").value,email:$("aemail").value,password:newPass,currentPassword:$("acur").value})});
+      localStorage.gbToken=j.token; localStorage.gbAdminToken=j.token;
+      $("curEmail").textContent=j.email||"—";
+      if(j.username)$("curUsername").textContent=j.username;
+      $("accForm").reset();
+      m.className="ok"; m.textContent="Admin details saved on the server. Use the new details the next time you log in — they stay in place through future updates.";
+    }catch(err){m.className="error";m.textContent=err.message}
+  });
+
+  $("updForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const m=$("umsg"); m.className=""; m.textContent="";
+    try{
+      const f=$("uzip").files[0];
+      if(!f){m.className="error";m.textContent="Choose the .zip package first.";return}
+      const up=await GB.upload(f,pct=>{$("uprog").textContent="Uploading — "+pct+"%"});
+      const j=await GB.api("/api/admin/app-update",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({version:$("uversion").value,notes:$("unotes").value,password:$("upassword").value,
+          fileKey:up.fileKey,fileName:up.fileName,size:up.size})});
+      m.className="ok"; m.textContent=(j.deployed?"Update is live — version ":"Update published as version ")+j.version+". Students will receive the new version from the secure update channel.";
+      $("updForm").reset(); $("uprog").textContent=""; update();
+    }catch(err){m.className="error";m.textContent=err.message}
+  });
+
+  $("pClose").onclick=()=>{$("progressCard").hidden=true};
+  addEventListener("hashchange",()=>show((location.hash||"#overview").slice(1)));
+}
+
+/* --------------------- publish / delete actions ----------------------- */
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  const d=t.dataset;
+  try{
+    if(d.editBank){ const q=bankCache.find(x=>x.id===d.editBank); if(q) editBankModal(q); }
+    else if(d.editTest){ const list=await GB.api("/api/admin/tests"); const t=list.find(x=>x.id===d.editTest); if(t) editTestModal(t); }
+    else if(d.annRemove){ annRemoved.add(String(d.annRemove)); const row=t.closest('[data-existing-key]'); if(row)row.remove(); if(!$("aExistingMedia").children.length)$("aExistingMedia").innerHTML="<small class='muted'>All existing attachments are marked for deletion. Save the announcement to apply it.</small>"; }
+    else if(d.fbReply){ const input=document.querySelector(`[data-fb-reply-input="${CSS.escape(d.fbReply)}"]`); if(input){await GB.api('/api/admin/feedback/'+encodeURIComponent(d.fbReply),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({reply:input.value.trim(),resolved:!!input.value.trim()})}); feedback(); say(input.value.trim()?'Reply saved and sent to the student.':'Reply cleared.');} }
+    else if(d.delBank){if(!await GBUI.confirmAction("Delete this question?","It will be permanently removed from the reusable question bank.","Yes, delete question"))return;await GB.del("/api/admin/question-bank/"+encodeURIComponent(d.delBank));bank();overview();say("Question deleted.")}
+    else if(d.toggleNote){await GB.api("/api/admin/notes/"+d.toggleNote,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({published:d.pub==="1"})});notes();overview()}
+    else if(d.delNote){if(!await GBUI.confirmAction("Delete this material?","The published material and its stored files will be permanently removed.","Yes, delete material"))return;await GB.del("/api/admin/notes/"+d.delNote);notes();overview()}
+    else if(d.toggleTest){await GB.api("/api/admin/tests/"+d.toggleTest,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({published:d.pub==="1"})});tests();overview()}
+    else if(d.delTest){if(!await GBUI.confirmAction("Delete this CBT?","This removes the CBT and all results associated with it.","Yes, delete CBT"))return;await GB.del("/api/admin/tests/"+d.delTest);tests();overview()}
+    else if(d.editAnn){ const a=annCache.find(x=>x.id===d.editAnn); if(a) startAnnEdit(a); }
+    else if(d.toggleAnn){await GB.api("/api/admin/announcements/"+d.toggleAnn,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({published:d.pub==="1"})});anns();overview()}
+    else if(d.delAnn){if(!await GBUI.confirmAction("Delete this announcement?","The announcement and its uploaded media will be permanently removed.","Yes, delete announcement"))return;await GB.del("/api/admin/announcements/"+d.delAnn);if($("aeditId").value===d.delAnn)resetAnnForm();anns();overview();say("Announcement deleted.")}
+    else if(d.fbResolve){await GB.api("/api/admin/feedback/"+encodeURIComponent(d.fbResolve),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({resolved:d.done!=="1"})});feedback()}
+    else if(d.fbDel){if(!await GBUI.confirmAction("Delete this message?","The student's feedback will be permanently removed.","Yes, delete"))return;await GB.del("/api/admin/feedback/"+encodeURIComponent(d.fbDel));feedback();overview()}
+  }catch(err){say(err.message,"error")}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>Learning Materials • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">📚</span> Learning Materials</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <p class="muted">Every note and file published by your tutors lives here — read it inside the app or download it.
+         Pick a subject session below. Long lists collapse, so use <b>Show more</b> to see the rest.</p>
+      <div class="tabs" id="tabs"></div>
+      <div id="out"><p class="muted">Loading materials…</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="mTitle"></h2>
+      <button class="btn light" type="button" id="mClose">✕ Close</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/materials.html"});
+const $=id=>document.getElementById(id);
+let items=[], current=new URLSearchParams(location.search).get("subject")||"All";
+
+const dateOf=m=>{const d=new Date(m.createdAt||m.updatedAt||Date.now());return isNaN(d)?"":d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})};
+
+function card(m){
+  const files=(m.attachments||[]).length;
+  return `<article class="matcard">
+    <div class="matmeta"><span class="pill">${GBUI.SUBJECT_ICONS[m.subject]||"📗"} ${GBUI.esc(m.subject||"General")}</span><small>${dateOf(m)}</small></div>
+    <h3>${GBUI.esc(m.title||"Untitled material")}</h3>
+    ${m.summary?`<p class="muted">${GBUI.esc(m.summary)}</p>`:""}
+    <div class="matactions">
+      <button class="btn primary" type="button" data-open="${GBUI.esc(m.id)}">Open material</button>
+      <small class="muted">${files?files+" file"+(files===1?"":"s")+" attached":"Note only"}</small>
+    </div>
+  </article>`;
+}
+
+function render(){
+  const list=current==="All"?items:items.filter(m=>(m.subject||"General")===current);
+  const sorted=[...list].sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  $("tabs").innerHTML=["All",...GBUI.SUBJECTS].map(s=>{
+    const n=s==="All"?items.length:items.filter(m=>(m.subject||"General")===s).length;
+    return `<button class="tab ${s===current?"on":""}" type="button" data-tab="${GBUI.esc(s)}">${s==="All"?"🗂️":GBUI.SUBJECT_ICONS[s]} ${GBUI.esc(s)} <span class="count">${n}</span></button>`;
+  }).join("");
+  $("out").innerHTML=`<div class="section-head"><h2>${current==="All"?"All materials":GBUI.esc(current)}</h2></div>`+
+    GBUI.collapsible("more-"+current.replace(/\W/g,""), sorted.map(card));
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab]");
+  if(t){ current=t.dataset.tab; history.replaceState(null,"","?subject="+encodeURIComponent(current)); render(); return; }
+  const o=e.target.closest("[data-open]");
+  if(o) open(o.dataset.open);
+});
+
+function open(id){
+  const m=items.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  $("mTitle").textContent=m.title||"Material";
+  $("mBody").innerHTML=`<div class="matmeta"><span class="pill">${GBUI.SUBJECT_ICONS[m.subject]||"📗"} ${GBUI.esc(m.subject||"General")}</span><small>${dateOf(m)}</small></div>`+
+    `<div class="rich">${GBUI.renderBody(m.body,m.bodyFormat)||"<p class='muted'>No written note for this material.</p>"}</div>`+
+    GBUI.media((m.attachments||[]).filter(f=>["image","video","audio"].includes(GBUI.kindOf(f))))+
+    GBUI.files((m.attachments||[]).filter(f=>!["image","video","audio"].includes(GBUI.kindOf(f))));
+  $("modal").hidden=false;
+  document.body.classList.add("noscroll");
+}
+const close=()=>{$("modal").hidden=true;document.body.classList.remove("noscroll")};
+$("mClose").onclick=close;
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal")close()});
+addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+
+GB.api("/api/materials").then(d=>{items=Array.isArray(d)?d:(d.items||[]);try{localStorage.setItem("gbMaterialsCache",JSON.stringify(items))}catch{};render()})
+  .catch(e=>{try{const cached=JSON.parse(localStorage.getItem("gbMaterialsCache")||"[]");if(Array.isArray(cached)&&cached.length){items=cached;render();return}}catch{};$('out').innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`});
+</script>
+</body>
+</html>

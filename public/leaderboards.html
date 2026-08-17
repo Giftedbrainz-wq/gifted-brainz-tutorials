@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>Leaderboards • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">🏆</span> Leaderboards</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <p class="muted">There is an overall board plus a separate board for every subject. Pick a session below.</p>
+      <div class="tabs" id="tabs"></div>
+      <div id="out"><p class="muted">Loading leaderboard…</p></div>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/leaderboards.html"});
+const $=id=>document.getElementById(id);
+let current=new URLSearchParams(location.search).get("subject")||"Overall";
+let me=""; try{me=(JSON.parse(localStorage.gbUser||"{}").username||"")}catch{}
+
+function tabs(){
+  $("tabs").innerHTML=["Overall",...GBUI.SUBJECTS].map(s=>
+    `<button class="tab ${s===current?"on":""}" type="button" data-tab="${GBUI.esc(s)}">${s==="Overall"?"🏆":GBUI.SUBJECT_ICONS[s]} ${GBUI.esc(s)}</button>`).join("");
+}
+
+const medal=i=>i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
+
+async function load(){
+  tabs();
+  $("out").innerHTML='<p class="muted">Loading leaderboard…</p>';
+  const url=current==="Overall"?"/api/leaderboard":"/api/leaderboard?subject="+encodeURIComponent(current);
+  try{
+    const d=await GB.api(url);
+    const rows=Array.isArray(d)?d:(d.rows||[]);
+    if(!rows.length){$("out").innerHTML=`<div class="card"><p class="muted">No scores recorded for ${GBUI.esc(current)} yet. Be the first!</p></div>`;return}
+    $("out").innerHTML=`<div class="card"><div class="section-head"><h2>${current==="Overall"?"Overall Leaderboard":GBUI.esc(current)+" Leaderboard"}</h2></div>
+      <div class="lbhead"><span>Position</span><span>Student</span><span>Average</span><span>Tests</span></div>
+      ${rows.map((r,i)=>{const pct=Math.round(r.avg||r.score||0), g=GBUI.GRADE(pct); return `<div class="lbrow ${r.username&&r.username===me?"me":""}">
+        <span class="pos">${medal(i)}</span>
+        <span class="nm">${GBUI.esc(r.name||r.username||"Student")}${r.username===me?' <em>(you)</em>':""}</span>
+        <span class="sc g-${g.band}">${pct}% <small title="${GBUI.esc(g.remark)}">${g.emoji}</small></span>
+        <span class="tc">${r.tests||r.count||0}</span></div>`}).join("")}</div>`;
+  }catch(e){$("out").innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`}
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab]");
+  if(!t)return;
+  current=t.dataset.tab;
+  history.replaceState(null,"","?subject="+encodeURIComponent(current));
+  load();
+});
+load();
+</script>
+</body>
+</html>

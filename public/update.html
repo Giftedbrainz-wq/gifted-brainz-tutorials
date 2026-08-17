@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>Update • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell"><div class="main">
+  <div class="topbar">
+    <div class="page-title"><span class="ic">🔄</span> Latest Update</div>
+    <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+  </div>
+  <div class="content">
+    <div class="hero-banner">
+      <div class="eyebrow">Gifted Brainz Tutorial</div>
+      <h1 id="title">Update applied successfully</h1>
+      <p>The latest version has been installed automatically. Your account, CBT records and portal information remain intact.</p>
+    </div>
+    <div class="card" id="details"><p class="muted">Checking the live version…</p></div>
+    <div class="factions" style="margin-top:14px">
+      <a class="btn primary" href="/dashboard.html">Continue to dashboard →</a>
+      <a class="btn light" href="/announcements.html">View announcements</a>
+    </div>
+  </div>
+</div></div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/dashboard.html"});
+(async()=>{
+  const $=id=>document.getElementById(id);
+  const wanted=new URLSearchParams(location.search).get("version")||"";
+  try{
+    const u=await GB.api("/api/app/update");
+    const version=u?.version||wanted||"latest";
+    $("title").textContent="Version "+version+" is live";
+    $("details").innerHTML=
+      '<div class="notice"><b>Update complete ✅</b><br>'+
+      GBUI.esc(u?.notes||"The latest Gifted Brainz Tutorial update is now active on this device.")+
+      '<br><small class="muted">Published '+GBUI.esc(u?.date?new Date(u.date).toLocaleString():"just now")+'</small></div>';
+  }catch(e){
+    $("details").innerHTML='<p class="error">'+GBUI.esc(e.message)+'</p>';
+  }
+})();
+</script>
+</body>
+</html>

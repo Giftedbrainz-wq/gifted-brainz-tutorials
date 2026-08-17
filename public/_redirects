@@ -1,0 +1,12 @@
+# Routing rules that ship with the published folder.
+#
+# The first matching rule wins, so the API rules MUST stay above the
+# single-page fallback. If the fallback ran first, /api/* would be answered
+# with index.html and the app would report
+# "the server returned a web page instead of data".
+
+/api/ping     /.netlify/functions/ping          200!
+/api/*        /.netlify/functions/api/:splat    200!
+
+# Single-page fallback for direct links to app pages. Must stay last.
+/*            /index.html                       200

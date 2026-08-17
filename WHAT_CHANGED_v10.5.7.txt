@@ -1,0 +1,53 @@
+GIFTED BRAINZ TUTORIAL — v10.5.7 (deploy fix)
+
+Problem
+-------
+Login on the student and admin portals reported:
+"The API is not responding on this site: the server returned a web page
+instead of data. The serverless function was not published with this deploy."
+
+The backend code was fine. The packaging was the problem: the site published
+the repository root ("publish = ."), ran a pointless build command, and left
+the Netlify UI free to publish a directory that did not carry the function —
+so /api/* fell through to the single-page fallback and answered index.html.
+
+Changes (no student content, CBT questions, materials or API logic touched)
+--------------------------------------------------------------------------
+1. All static files moved into public/ ; netlify.toml now publishes "public".
+   Static site and backend now live in separate folders, so the publish
+   directory can never include or omit the function by accident.
+2. netlify.toml: build command emptied, functions = "netlify/functions",
+   Node 20, esbuild bundler, /api/* redirect forced above the SPA fallback.
+3. build.mjs and the "build" npm script removed (they only printed a message
+   and could fail a deploy). package.json now declares "type": "module".
+4. New dependency-free probe function netlify/functions/ping.mjs -> /api/ping.
+   It proves whether functions were published at all.
+5. public/_redirects rewritten: /api/ping and /api/* forced to the functions
+   ahead of the /* -> /index.html fallback.
+6. diagnostics.html now runs the /api/ping probe first and states plainly
+   which layer is broken: functions not deployed, API function crashing, or
+   storage unavailable.
+7. GITHUB_DEPLOYMENT_FIRST.txt and DEPLOYMENT.md rewritten for the new layout
+   and exact Netlify settings. The stale GITHUB_NETLIFY_DEPLOY.txt was removed.
+
+Verification performed
+----------------------
+Ran the real Netlify dev server against this package:
+  /api/ping    -> 200 JSON {"ok":true,"functions":true}
+  /api/health  -> 200 JSON {"ok":true}
+  /api/status  -> 200 JSON, storage backend "netlify-blobs", persistent
+  /api/login   -> 401 JSON (correctly rejects a bad test login)
+  /api/nope    -> 404 JSON (never HTML)
+  /login.html and other deep links -> 200
+Also swept every page and script: no broken asset/script references, no JS
+syntax errors, manifest and icon paths valid, and the service worker correctly
+excludes /api/* from caching.
+
+Netlify settings to use
+-----------------------
+  Base directory:      .        (empty)
+  Build command:       (empty)
+  Publish directory:   public
+  Functions directory: netlify/functions
+Deploy from GitHub. Netlify Drop will never work — it does not publish
+functions.

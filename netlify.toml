@@ -1,0 +1,43 @@
+# Gifted Brainz Tutorial — Netlify configuration.
+#
+# This file is what a Git-connected deploy uses. Every static file lives in
+# public/, and the serverless API lives in netlify/functions/. Keeping the two
+# in separate folders means the "Publish directory" can never accidentally be
+# pointed at a folder that also contains (or omits) the functions.
+
+[build]
+  # No compilation is required; this command only verifies that Netlify is
+  # deploying the static site and both serverless function entrypoints.
+  command = "node scripts/verify-netlify.mjs"
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+# api.js and ping.js are the conventional Netlify Function entrypoints. They
+# import the bundled handlers, which declare their own routes. These redirects are the
+# belt-and-braces fallback for older routing behaviour. The API rule MUST stay
+# above the single-page fallback: if the fallback matched first, /api/* would
+# be answered with index.html and the app would report
+# "the server returned a web page instead of data".
+
+[[redirects]]
+  from = "/api/ping"
+  to = "/.netlify/functions/ping"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

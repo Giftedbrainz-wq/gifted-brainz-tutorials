@@ -1,0 +1,64 @@
+GIFTED BRAINZ TUTORIAL v10.5.7 — GITHUB -> NETLIFY DEPLOYMENT
+
+Deploy from GitHub. Netlify Drop (drag-and-drop) does NOT publish serverless
+functions, and without the function every login fails with:
+"The API is not responding on this site: the server returned a web page
+instead of data."
+
+1) REPOSITORY LAYOUT
+Upload the EXTRACTED files to the ROOT of the repository. At the repo root you
+must see exactly this:
+
+    public/                  <- every page, script, style and image
+      index.html
+      login.html
+      admin.html
+      ... (all other .html)
+      app.js  api.js  gb-ui.js  styles.css  sw.js
+      manifest.webmanifest  _redirects  _headers
+      assets/
+    netlify/
+      functions/
+        api.js              <- the backend
+        ping.js             <- deploy probe
+    netlify.toml
+    package.json
+
+Do NOT upload the ZIP itself as the only file, and do NOT nest the project
+inside another folder.
+
+2) NETLIFY SETTINGS
+   Add new project -> Import an existing project -> GitHub -> pick the repo.
+   Branch:              main (or your production branch)
+   Base directory:      .            (leave empty)
+   Build command:       node scripts/verify-netlify.mjs
+   Publish directory:   public
+   Functions directory: netlify/functions
+   Node version:        20 (set by netlify.toml)
+
+   netlify.toml already declares all of the above; only override the fields in
+   the UI if Netlify pre-filled something different.
+
+3) VERIFY AFTER DEPLOY
+   a. https://YOUR-SITE.netlify.app/api/ping
+      Expect: {"ok":true,"functions":true,...}
+      If you get a web page instead, functions were not published — recheck
+      step 2 (Publish directory must be "public", not ".").
+   b. https://YOUR-SITE.netlify.app/api/health
+      Expect: {"ok":true,...}
+   c. https://YOUR-SITE.netlify.app/diagnostics.html -> "Run checks"
+      This tells you in plain words which layer is failing.
+   d. Then test /login.html and /admin.html.
+
+4) DATA STORAGE
+   The API stores everything in Netlify Blobs (store name: gifted-brainz).
+   Git-connected sites get Blobs automatically. If diagnostics reports a
+   temporary store, enable Blobs for the site or set NETLIFY_SITE_ID and
+   NETLIFY_AUTH_TOKEN in Site configuration -> Environment variables.
+
+5) TROUBLESHOOTING
+   404 on every page      -> Publish directory is wrong; it must be "public".
+   HTML instead of JSON   -> Functions were not deployed; see 3a.
+   500 from /api/health   -> Netlify -> Logs -> Functions -> api shows why.
+   Old version keeps      -> Hard refresh, or unregister the service worker in
+   loading                   the browser's Application tab.

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#082d63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/favicon.ico">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>My Performance • Gifted Brainz Tutorial</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="network-banner" id="networkBanner"></div>
+<div id="shell">
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title"><span class="ic">📈</span> My Performance</div>
+      <div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div>
+    </div>
+    <div class="content">
+      <div class="statgrid" id="statgrid"></div>
+      <section class="card" id="remarkCard" hidden></section>
+      <section class="card">
+        <div class="section-head"><h2>Performance by Subject</h2></div>
+        <div class="subjectgrid" id="bysubject"></div>
+      </section>
+      <section class="card">
+        <div class="section-head"><h2>All Your CBT Results</h2></div>
+        <div id="results"><p class="muted">Loading…</p></div>
+      </section>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script>
+<script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/performance.html"});
+const $=id=>document.getElementById(id);
+
+GB.api("/api/dashboard").then(d=>{
+  $("who").textContent=d.user.name;
+  const scores=d.results.map(r=>r.score);
+  const cards=[
+    ["📝",d.tests,"Tests Taken"],
+    ["🎯",d.avg+"%","Average Score"],
+    ["🏅",(scores.length?Math.max(...scores):0)+"%","Best Score"],
+    ["🏆","#"+(d.rank||0),"Overall Rank"]
+  ];
+  $("statgrid").innerHTML=cards.map(([i,v,l])=>`<div class="statcard plain"><div class="ic">${i}</div><strong>${GBUI.esc(v)}</strong><small>${l}</small></div>`).join("");
+
+  $("bysubject").innerHTML=GBUI.SUBJECTS.map(s=>{
+    const rr=d.results.filter(r=>r.subject===s);
+    const pct=rr.length?Math.round(rr.reduce((x,r)=>x+r.score,0)/rr.length):0;
+    return `<a class="subject-card" href="/leaderboards.html?subject=${encodeURIComponent(s)}">
+      <b>${GBUI.SUBJECT_ICONS[s]||"📗"} ${GBUI.esc(s)}</b>
+      <div class="progress"><i style="width:${pct}%"></i></div>
+      <small>${pct}% average • ${rr.length} test${rr.length===1?"":"s"}</small>
+      <span class="statgo">See subject leaderboard →</span></a>`;
+  }).join("");
+
+  // The remark and its colour come from the one shared grading rule.
+  if(d.results.length){
+    const g=GBUI.GRADE(d.avg);
+    $("remarkCard").hidden=false;
+    $("remarkCard").innerHTML=`<div class="section-head"><h2>Your overall remark</h2></div>
+      <div class="rating-summary">
+        <div>${GBUI.scoreDonut(d.avg,140)}</div>
+        <div><div class="res-band bg-${g.band}" style="margin-top:0">${g.emoji} ${GBUI.esc(g.word)}</div>
+          <p style="font-size:1.05rem;font-weight:800;margin:10px 0 4px" class="g-${g.band}">${GBUI.esc(g.remark)} ${g.emoji}</p>
+          <p class="muted" style="margin:0">Based on your ${d.avg}% average across ${d.tests} test${d.tests===1?"":"s"}.</p></div>
+      </div>`;
+  }
+
+  const rows=d.results.map(r=>{const g=GBUI.GRADE(r.score);return `<a class="result-row" href="/cbt.html?review=${encodeURIComponent(r.id)}">
+      <span class="rr-title"><b>${GBUI.esc(r.testTitle)}</b><small>${GBUI.esc(r.subject||"")} • ${new Date(r.submittedAt||r.date||Date.now()).toLocaleString()}</small></span>
+      <span class="rr-score g-${g.band}">${r.score}% <small style="display:block;font-size:.7rem">${g.emoji} ${GBUI.esc(g.word)}</small></span>
+      <span class="rr-detail">${r.correct} correct • ${r.wrong} wrong • ${r.unanswered} skipped</span>
+      <span class="statgo">Review →</span></a>`});
+  $("results").innerHTML=rows.length?GBUI.collapsible("moreRes",rows):'<p class="muted">No results yet. Head to the CBT Arena to take your first test.</p>';
+}).catch(e=>{$("results").innerHTML=`<p class="error">${GBUI.esc(e.message)}</p>`});
+</script>
+</body>
+</html>

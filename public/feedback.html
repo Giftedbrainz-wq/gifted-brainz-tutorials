@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d2a5c"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico"><link rel="apple-touch-icon" href="/assets/icon-192.png"><title>Feedback &amp; Rating • Gifted Brainz Tutorial</title><link rel="stylesheet" href="/styles.css"></head>
+<body><div class="network-banner" id="networkBanner"></div>
+<div id="shell"><div class="main"><div class="topbar"><div class="page-title"><span class="ic">⭐</span> Feedback &amp; Rating</div><div class="topbar-right"><span class="who" id="who"></span><button class="btn light" onclick="GB.logout()">Log out</button></div></div>
+<div class="content">
+  <div class="hero-banner"><div class="eyebrow">Your voice matters</div><h1>Rate Gifted Brainz Tutorial</h1><p>Tell us how the tutorial and the app are working for you. Give a star rating, share what you love, or lodge a complaint — the admins read every message.</p></div>
+
+  <div class="card">
+    <div class="section-head"><h2>Give your rating</h2></div>
+    <p class="muted" id="starLabel">Tap the stars to rate out of 5.</p>
+    <div class="star-pick" id="starPick" role="radiogroup" aria-label="Rate out of 5 stars"></div>
+    <div class="formgrid" style="margin-top:14px">
+      <div class="field"><label for="kind">What are you sending?</label>
+        <select id="kind"><option value="feedback">⭐ Feedback on the tutorial or app</option><option value="complaint">⚠️ A complaint</option><option value="suggestion">💡 A suggestion</option></select></div>
+      <div class="field"><label for="subject">Subject / title</label><input id="subject" maxlength="140" placeholder="e.g. The CBT timer, a tutor, a bug…"></div>
+      <div class="field full"><label for="message">Your message</label><textarea id="message" rows="6" maxlength="4000" placeholder="Tell us exactly what happened or what you would like improved."></textarea><small class="muted">Up to 4000 characters.</small></div>
+    </div>
+    <div class="filters"><button class="btn gold" type="button" id="send">Send to the admins →</button></div>
+    <p id="msg"></p>
+  </div>
+
+  <div class="card"><div class="section-head"><h2>How everyone rates us</h2></div><div id="summary"><p class="muted">Loading…</p></div></div>
+
+  <div class="card"><div class="section-head"><h2>Your previous messages</h2></div><div id="mine"><p class="muted">Loading…</p></div></div>
+</div></div></div>
+<script src="/app.js"></script><script src="/api.js"></script><script src="/gb-ui.js"></script><script>
+if(!GB.token()) location="/login.html";
+GBUI.mount({active:"/feedback.html"});
+const $=id=>document.getElementById(id), esc=GBUI.esc;
+let rating=0;
+
+const WORDS={1:"Very poor 😞",2:"Not good 🙁",3:"It is okay 🙂",4:"Very good 😀",5:"Excellent 🤩"};
+function paintStars(){
+  $("starPick").innerHTML=[1,2,3,4,5].map(n=>`<button type="button" class="${n<=rating?"on":""}" data-star="${n}" aria-label="${n} star${n>1?"s":""}">${n<=rating?"★":"☆"}</button>`).join("");
+  $("starPick").querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{rating=Number(b.dataset.star);paintStars()});
+  $("starLabel").textContent=rating?`You picked ${rating} out of 5 — ${WORDS[rating]}`:"Tap the stars to rate out of 5.";
+}
+paintStars();
+
+function card(f){
+  return `<div class="fbcard ${f.resolved?"done":""}">
+    <div class="fbhead"><b>${esc(f.subject||"Feedback")}</b>
+      <span>${GBUI.stars(f.rating)} <span class="pill">${esc(f.kind)}</span> ${f.resolved?'<span class="pill good">Handled ✅</span>':'<span class="pill warn">Awaiting reply</span>'}</span></div>
+    <small>${new Date(f.createdAt).toLocaleString("en-GB")}</small>
+    <p style="margin:8px 0 0;line-height:1.6">${GBUI.renderBody(f.message)}</p>
+    ${f.reply?`<div class="review-reason" style="margin-top:10px"><b>Reply from the admin:</b> ${GBUI.renderBody(f.reply)}</div>`:""}
+  </div>`;
+}
+
+async function load(){
+  try{
+    const x=await GB.api("/api/feedback");
+    const s=x.summary||{average:0,total:0,breakdown:[]};
+    $("summary").innerHTML=s.total?`<div class="rating-summary">
+      <div class="rating-big"><strong>${s.average.toFixed(1)}</strong>${GBUI.stars(s.average,true)}<div class="muted" style="margin-top:6px">${s.total} rating${s.total===1?"":"s"}</div></div>
+      <div class="rating-bars">${s.breakdown.map(b=>`<div class="rating-bar"><span>${b.star} ★</span><i><span style="width:${s.total?Math.round(b.count/s.total*100):0}%"></span></i><span>${b.count}</span></div>`).join("")}</div>
+    </div>`:'<p class="muted">No ratings yet — be the first to rate the tutorial.</p>';
+    $("mine").innerHTML=(x.mine||[]).length?`<div class="list">${x.mine.map(card).join("")}</div>`:'<p class="muted">You have not sent anything yet. Your messages will appear here once you do.</p>';
+  }catch(e){ $("summary").innerHTML=`<p class="error">${esc(e.message)}</p>`; $("mine").innerHTML="" }
+}
+load();
+
+$("send").onclick=async()=>{
+  const msg=$("msg"); msg.className=""; msg.textContent="";
+  if(!rating){msg.className="error";msg.textContent="Please tap between 1 and 5 stars first.";return}
+  if($("message").value.trim().length<4){msg.className="error";msg.textContent="Please tell us a little more so we can act on it.";return}
+  $("send").disabled=true; msg.textContent="Sending…";
+  try{
+    const x=await GB.api("/api/feedback",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({rating,kind:$("kind").value,subject:$("subject").value,message:$("message").value})});
+    msg.className="success"; msg.textContent=x.message||"Thank you — your message has reached the Gifted Brainz team.";
+    $("subject").value=""; $("message").value=""; rating=0; paintStars(); load();
+  }catch(e){ msg.className="error"; msg.textContent=e.message }
+  finally{ $("send").disabled=false }
+};
+</script></body></html>
